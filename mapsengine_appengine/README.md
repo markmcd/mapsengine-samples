@@ -7,7 +7,7 @@ Sample AppEngine app that demonstrates how to
 * allow them to upload a zipped shapefile.
 
 
-Fork away, or if you just want to use it, check out the [live demo](gme-examples.appspot.com/upload)
+Fork away, or if you just want to use it, check out the [live demo](http://gme-examples.appspot.com/upload)
 
 Requirements
 ------------------------
