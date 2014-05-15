@@ -1,0 +1,15 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.5
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.google.api-client:google-api-client:1.17.0-rc'
+    compile 'com.google.http-client:google-http-client-gson:1.17.0-rc'
+    compile 'com.google.apis:google-api-services-mapsengine:v1-rev12-1.18.0-rc'
+    compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
+}
