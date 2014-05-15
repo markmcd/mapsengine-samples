@@ -1,10 +1,17 @@
 package com.google.mapsengine.samples.auth;
 
+import com.google.api.client.auth.oauth2.AuthorizationCodeFlow;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.extensions.servlet.auth.oauth2.AbstractAuthorizationCodeCallbackServlet;
+import com.google.api.client.extensions.servlet.auth.oauth2.AbstractAuthorizationCodeServlet;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.http.GenericUrl;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.store.MemoryDataStoreFactory;
 
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.servlet.ServletHandler;
@@ -17,6 +24,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.Scanner;
 
 import javax.servlet.ServletException;
@@ -70,6 +78,8 @@ class WebServer {
     sessionHandler.setHandler(servletHandler);
     server.setHandler(sessionHandler);
     servletHandler.addServletWithMapping(MainServlet.class, "/");
+    servletHandler.addServletWithMapping(AuthServlet.class, "/auth");
+    servletHandler.addServletWithMapping(CallbackServlet.class, "/oauth2callback");
     server.start();
     server.join();
   }
@@ -113,4 +123,88 @@ class WebServer {
 
     }
   }
+
+  /**
+   * Thread-safe OAuth 2.0 authorization code flow HTTP servlet.  Note that this is thread-safe,
+   * but can only process one request at a time.  For a more performance-critical multi-threaded
+   * web application, instead use {@link com.google.api.client.auth.oauth2.AuthorizationCodeFlow}
+   * directly.
+   */
+  public static class AuthServlet extends AbstractAuthorizationCodeServlet {
+
+    /**
+     * Loads the authorization code flow to be used across all HTTP servlet requests (only called
+     * during the first HTTP servlet request).
+     */
+    @Override
+    protected AuthorizationCodeFlow initializeFlow() throws ServletException, IOException {
+      return new GoogleAuthorizationCodeFlow.Builder(
+          TRANSPORT,
+          JSON_FACTORY,
+          clientSecrets.getDetails().getClientId(),
+          clientSecrets.getDetails().getClientSecret(),
+          Collections.singleton("https://www.googleapis.com/auth/mapsengine.readonly"))
+          .setDataStoreFactory(new MemoryDataStoreFactory())
+          .build();
+    }
+
+    /** Returns the redirect URI for the given HTTP servlet request. */
+    @Override
+    protected String getRedirectUri(HttpServletRequest req) throws ServletException, IOException {
+      // Using a new GenericUrl based on the request URL will preserve parameters.
+      GenericUrl url = new GenericUrl(req.getRequestURL().toString());
+      url.setRawPath("/oauth2callback");
+      return url.build();
+    }
+
+    /** Returns the user ID for the given HTTP servlet request. */
+    @Override
+    protected String getUserId(HttpServletRequest req) throws ServletException, IOException {
+      // You'll need to replace this with the appropriate code to generate user IDs in your system
+      return "1234";
+    }
+  }
+
+  public static class CallbackServlet extends AbstractAuthorizationCodeCallbackServlet {
+
+    /**
+     * Loads the authorization code flow to be used across all HTTP servlet requests (only called
+     * during the first HTTP servlet request with an authorization code).
+     */
+    @Override
+    protected AuthorizationCodeFlow initializeFlow() throws ServletException, IOException {
+      return new GoogleAuthorizationCodeFlow.Builder(
+          TRANSPORT,
+          JSON_FACTORY,
+          clientSecrets.getDetails().getClientId(),
+          clientSecrets.getDetails().getClientSecret(),
+          Collections.singleton("https://www.googleapis.com/auth/mapsengine.readonly"))
+          .setDataStoreFactory(new MemoryDataStoreFactory())
+          .build();
+    }
+
+    /** Sends the user back to the index page when authorization succeeds. */
+    @Override
+    protected void onSuccess(HttpServletRequest req, HttpServletResponse resp, Credential credential)
+        throws ServletException, IOException {
+      resp.sendRedirect("/");
+    }
+
+    /** Returns the redirect URI for the given HTTP servlet request. */
+    @Override
+    protected String getRedirectUri(HttpServletRequest req) throws ServletException, IOException {
+      // Using a new GenericUrl based on the request URL will preserve parameters.
+      GenericUrl url = new GenericUrl(req.getRequestURL().toString());
+      url.setRawPath("/oauth2callback");
+      return url.build();
+    }
+
+    /** Returns the user ID for the given HTTP servlet request. */
+    @Override
+    protected String getUserId(HttpServletRequest req) throws ServletException, IOException {
+      // You'll need to replace this with the appropriate code to generate user IDs in your system
+      return "1234";
+    }
+  }
+
 }
