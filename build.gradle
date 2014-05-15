@@ -8,8 +8,20 @@ repositories {
 }
 
 dependencies {
+    // google client libraries
     compile 'com.google.api-client:google-api-client:1.17.0-rc'
     compile 'com.google.http-client:google-http-client-gson:1.17.0-rc'
     compile 'com.google.apis:google-api-services-mapsengine:v1-rev12-1.18.0-rc'
     compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
+
+    compile 'org.mortbay.jetty:jetty:6.1.+'
 }
+
+if (!project.hasProperty('mainClass')) {
+    mainClass = ''
+}
+task execute(type:JavaExec) {
+    main = mainClass
+    classpath = sourceSets.main.runtimeClasspath
+}
+
