@@ -8,14 +8,14 @@ repositories {
 }
 
 dependencies {
-    // google client libraries
+    // Google client libraries
     compile 'com.google.api-client:google-api-client:1.18.0-rc'
     compile 'com.google.http-client:google-http-client-gson:1.18.0-rc'
     compile 'com.google.oauth-client:google-oauth-client-servlet:1.18.0-rc'
     compile 'com.google.apis:google-api-services-mapsengine:v1-rev12-1.18.0-rc'
     compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
 
-    // other libraries
+    // Other libraries
     compile 'org.mortbay.jetty:jetty:6.1.+'
 }
 
