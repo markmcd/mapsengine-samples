@@ -188,8 +188,7 @@ class WebServer {
           clientSecrets.getDetails().getClientId(),
           clientSecrets.getDetails().getClientSecret(),
           Collections.singleton("https://www.googleapis.com/auth/mapsengine.readonly"))
-          .setDataStoreFactory(new MemoryDataStoreFactory())
-          .build();
+        .setDataStoreFactory(new MemoryDataStoreFactory()).build();
     }
 
     /** Returns the redirect URI for the given HTTP servlet request. */
@@ -223,8 +222,7 @@ class WebServer {
           clientSecrets.getDetails().getClientId(),
           clientSecrets.getDetails().getClientSecret(),
           Collections.singleton("https://www.googleapis.com/auth/mapsengine.readonly"))
-          .setDataStoreFactory(new MemoryDataStoreFactory())
-          .build();
+        .setDataStoreFactory(new MemoryDataStoreFactory()).build();
     }
 
     /** Sends the user back to the auth page when authorization succeeds, saving the credential. */
