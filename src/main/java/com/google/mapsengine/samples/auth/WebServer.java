@@ -138,6 +138,7 @@ class WebServer {
 
   }
 
+  /** JSON endpoint to retrieve the list of project names. */
   public static class ProjectsServlet extends HttpServlet {
 
     @Override
