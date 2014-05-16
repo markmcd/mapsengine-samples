@@ -12,6 +12,9 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.MemoryDataStoreFactory;
+import com.google.api.services.mapsengine.MapsEngine;
+import com.google.api.services.mapsengine.model.Project;
+import com.google.gson.Gson;
 
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.servlet.ServletHandler;
@@ -22,15 +25,16 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.math.BigInteger;
-import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Scanner;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  * Sample demonstrating the web server OAuth flow with Maps Engine.  The main method starts a web
@@ -58,12 +62,6 @@ class WebServer {
     }
   }
 
-  /** This is the Client ID that you generated in the API Console. */
-  private static final String CLIENT_ID = clientSecrets.getWeb().getClientId();
-
-  /** This is the Client Secret that you generated in the API Console. */
-  //private static final String CLIENT_SECRET = clientSecrets.getWeb().getClientSecret();
-
   /** Replace this with your application's name. */
   private static final String APPLICATION_NAME = "Google Maps Engine Java Quickstart";
 
@@ -78,6 +76,7 @@ class WebServer {
     sessionHandler.setHandler(servletHandler);
     server.setHandler(sessionHandler);
     servletHandler.addServletWithMapping(MainServlet.class, "/");
+    servletHandler.addServletWithMapping(ProjectsServlet.class, "/projects");
     servletHandler.addServletWithMapping(AuthServlet.class, "/auth");
     servletHandler.addServletWithMapping(CallbackServlet.class, "/oauth2callback");
     server.start();
@@ -97,20 +96,20 @@ class WebServer {
         return;
       }
 
+      // Flag to pass to the HTML page to tell if the user has authorize.d
+      Boolean isAuthed = false;
+      Credential credential = (Credential) request.getSession().getAttribute("credential");
+      if (credential != null) {
+        isAuthed = true;
+      }
+
       response.setContentType("text/html");
       try {
-        // Create a state token to prevent request forgery.
-        // Store it in the session for later validation.
-        String state = new BigInteger(130, new SecureRandom()).toString(32);
-        request.getSession().setAttribute("state", state);
-        // Fancy way to read index.html into memory, and set the client ID
-        // and state values in the HTML before serving it.
+        // Serve up index.html and substitute some variables required by the client.
         response.getWriter().print(new Scanner(new File("index.html"), "UTF-8")
             .useDelimiter("\\A").next()
-            .replaceAll("[{]{2}\\s*CLIENT_ID\\s*[}]{2}", CLIENT_ID)
-            .replaceAll("[{]{2}\\s*STATE\\s*[}]{2}", state)
-            .replaceAll("[{]{2}\\s*APPLICATION_NAME\\s*[}]{2}",
-                APPLICATION_NAME));
+            .replaceAll("[{]{2}\\s*IS_AUTHED\\s*[}]{2}", String.valueOf(isAuthed))
+            .replaceAll("[{]{2}\\s*APPLICATION_NAME\\s*[}]{2}", APPLICATION_NAME));
         response.setStatus(HttpServletResponse.SC_OK);
       }
       catch (FileNotFoundException e) {
@@ -121,6 +120,35 @@ class WebServer {
         response.getWriter().print(e.toString());
       }
 
+    }
+
+  }
+
+  public static class ProjectsServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+        throws ServletException, IOException {
+
+      List<String> projects = new ArrayList<String>();
+
+      // Retrieve the list of projects from Maps Engine.
+      Credential credential = (Credential) req.getSession().getAttribute("credential");
+      if (credential != null) {
+        MapsEngine engine = new MapsEngine.Builder(TRANSPORT, JSON_FACTORY, credential)
+            .setApplicationName(APPLICATION_NAME)
+            .build();
+
+       for (Project p : engine.projects().list().execute().getProjects()) {
+         projects.add(p.getName());
+       }
+      }
+
+      // Serialize the list to JSON and output to user.
+      resp.setContentType("application/json");
+      String json = new Gson().toJson(projects);
+      resp.setContentLength(json.length());
+      resp.getWriter().print(json);
     }
   }
 
@@ -183,10 +211,12 @@ class WebServer {
           .build();
     }
 
-    /** Sends the user back to the index page when authorization succeeds. */
+    /** Sends the user back to the auth page when authorization succeeds, saving the credential. */
     @Override
     protected void onSuccess(HttpServletRequest req, HttpServletResponse resp, Credential credential)
         throws ServletException, IOException {
+      HttpSession session = req.getSession(true);
+      session.setAttribute("credential", credential);
       resp.sendRedirect("/");
     }
 

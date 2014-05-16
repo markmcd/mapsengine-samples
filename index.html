@@ -3,8 +3,52 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>{{ APPLICATION_NAME }}</title>
+    <style type="text/css">
+        #auth-prompt {
+            display: block;
+        }
+        #project-list {
+            display: none;
+        }
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script>
+        var isAuthorized = {{ IS_AUTHED }};
+        $(function() {
+            if (isAuthorized) {
+                $('#auth-prompt').hide();
+                $('#project-list').show();
+                $.getJSON('/projects', function(data){
+                    $('#project-items').empty();
+                    if (data.length == 0) {
+                        $('#project-items')
+                            .append($('<li/>').text("No projects found!"));
+                    }
+                    else {
+                        $(data).each(function(i){
+                            $('#project-items').append($('<li/>').text(data[i]));
+                        });
+                    }
+                });
+            }
+            else {
+                $('#auth-prompt').show();
+                $('#project-list').hide();
+            }
+        });
+    </script>
 </head>
 <body>
-    <h1>success!</h1>
+    <h1>Maps Engine Demo</h1>
+    <div id="auth-prompt">
+        <h2>Authorization Required</h2>
+        <a href="/auth">Click here to grant authorization to your Maps Engine account.</a>
+    </div>
+    <div id="project-list">
+        <h2>Project List</h2>
+        <ul id="project-items"></ul>
+        <a href="https://mapsengine.google.com/admin/">Click here to open the Maps
+            Engine interface</a>, where you can create a project or manage your existing projects.
+    </div>
 </body>
 </html>
