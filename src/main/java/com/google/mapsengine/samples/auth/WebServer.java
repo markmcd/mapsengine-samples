@@ -97,7 +97,7 @@ class WebServer {
       }
 
       // Flag to pass to the HTML page to tell if the user has authorize.d
-      Boolean isAuthed = false;
+      boolean isAuthed = false;
       Credential credential = (Credential) request.getSession().getAttribute("credential");
       if (credential != null) {
         isAuthed = true;
