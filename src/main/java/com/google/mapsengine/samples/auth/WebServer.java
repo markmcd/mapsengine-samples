@@ -126,8 +126,7 @@ class WebServer {
             .replaceAll("[{]{2}\\s*IS_AUTHED\\s*[}]{2}", String.valueOf(isAuthed))
             .replaceAll("[{]{2}\\s*APPLICATION_NAME\\s*[}]{2}", APPLICATION_NAME));
         response.setStatus(HttpServletResponse.SC_OK);
-      }
-      catch (FileNotFoundException e) {
+      } catch (FileNotFoundException e) {
         // When running the quickstart, there was some path issue in finding
         // index.html.  Double check the quickstart guide.
         e.printStackTrace();
@@ -154,9 +153,10 @@ class WebServer {
             .setApplicationName(APPLICATION_NAME)
             .build();
 
-       for (Project p : engine.projects().list().execute().getProjects()) {
-         projects.add(p.getName());
-       }
+        // Here's where the magic happens.
+        for (Project p : engine.projects().list().execute().getProjects()) {
+          projects.add(p.getName());
+        }
       }
 
       // Serialize the list to JSON and output to user.
@@ -228,8 +228,8 @@ class WebServer {
 
     /** Sends the user back to the auth page when authorization succeeds, saving the credential. */
     @Override
-    protected void onSuccess(HttpServletRequest req, HttpServletResponse resp, Credential credential)
-        throws ServletException, IOException {
+    protected void onSuccess(HttpServletRequest req, HttpServletResponse resp,
+        Credential credential) throws ServletException, IOException {
       HttpSession session = req.getSession(true);
       session.setAttribute("credential", credential);
       resp.sendRedirect("/");
