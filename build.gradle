@@ -3,27 +3,34 @@ apply plugin: 'java'
 sourceCompatibility = 1.5
 version = '1.0'
 
+// Define the Google API versions to use, allowing the build
+// server to override via environment variables.
+if (!project.hasProperty('googleClientVersion')) {
+    ext.googleClientVersion = '1.18.0-rc'
+}
+if (!project.hasProperty('mapsengineClientVersion')) {
+    ext.mapsengineClientVersion = 'v1-rev12-' + googleClientVersion
+}
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
     // Google client libraries
-    compile 'com.google.api-client:google-api-client:1.18.0-rc'
-    compile 'com.google.http-client:google-http-client-gson:1.18.0-rc'
-    compile 'com.google.oauth-client:google-oauth-client-servlet:1.18.0-rc'
-    compile 'com.google.apis:google-api-services-mapsengine:v1-rev12-1.18.0-rc'
-    compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
+    compile "com.google.http-client:google-http-client-gson:" + project.ext.googleClientVersion
+    compile "com.google.oauth-client:google-oauth-client-servlet:" + project.ext.googleClientVersion
+    compile "com.google.apis:google-api-services-mapsengine:" + project.ext.mapsengineClientVersion
 
     // Other libraries
     compile 'org.mortbay.jetty:jetty:6.1.+'
 }
 
 if (!project.hasProperty('mainClass')) {
-    mainClass = ''
+    project.ext.mainClass = ''
 }
 task execute(type:JavaExec) {
-    main = mainClass
+    main = project.ext.mainClass
     classpath = sourceSets.main.runtimeClasspath
 }
 
