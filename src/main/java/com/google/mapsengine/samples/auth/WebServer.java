@@ -81,9 +81,7 @@ class WebServer {
   private static final String APPLICATION_NAME = "Google Maps Engine Java Quickstart";
 
 
-  /**
-   * Start the server and set up the URL mappings/
-   */
+  /** Start the server and set up the URL mappings. */
   public static void main(String[] args) throws Exception {
     Server server = new Server(SERVER_PORT);
     ServletHandler servletHandler = new ServletHandler();
@@ -98,9 +96,7 @@ class WebServer {
     server.join();
   }
 
-  /**
-   * Main, "index" servlet for the top-level URL, "/".
-   */
+  /** Main, "index" servlet for the top-level URL, "/". */
   public static class MainServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
