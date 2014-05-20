@@ -4,6 +4,8 @@ Maps Engine Java Samples
 This repository hosts a number of samples written in Java for Google Maps Engine.  These
 samples are included directly into the [Maps Engine documentation](https://developers.google.com/maps-engine/).
 
+![Build Status](https://api.travis-ci.org/googlemaps/mapsengine-samples-java.svg)
+
 Web Server OAuth Sample
 =======================
 
