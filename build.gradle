@@ -21,9 +21,12 @@ dependencies {
     compile "com.google.http-client:google-http-client-gson:" + project.ext.googleClientVersion
     compile "com.google.oauth-client:google-oauth-client-servlet:" + project.ext.googleClientVersion
     compile "com.google.apis:google-api-services-mapsengine:" + project.ext.mapsengineClientVersion
+    compile "com.google.oauth-client:google-oauth-client-jetty:" + project.ext.googleClientVersion
+    compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
 
     // Other libraries
     compile 'org.mortbay.jetty:jetty:6.1.+'
+    compile 'net.sf.opencsv:opencsv:2.3'
 }
 
 if (!project.hasProperty('mainClass')) {
