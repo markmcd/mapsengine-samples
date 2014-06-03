@@ -9,10 +9,11 @@ if (!project.hasProperty('googleClientVersion')) {
     ext.googleClientVersion = '1.18.0-rc'
 }
 if (!project.hasProperty('mapsengineClientVersion')) {
-    ext.mapsengineClientVersion = 'v1-rev12-' + googleClientVersion
+    ext.mapsengineClientVersion = 'exp2-rev20140529-' + googleClientVersion
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -22,7 +23,15 @@ dependencies {
     compile "com.google.oauth-client:google-oauth-client-servlet:" + project.ext.googleClientVersion
     compile "com.google.apis:google-api-services-mapsengine:" + project.ext.mapsengineClientVersion
     compile "com.google.oauth-client:google-oauth-client-jetty:" + project.ext.googleClientVersion
-    compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
+    // TODO: publish wrapper v0.2 and remove these
+    compile('com.google.maps:mapsengine-api-java-wrapper:0.2-SNAPSHOT') {
+    //compile('com.google.maps:mapsengine-api-java-wrapper:0.1') {
+    	// use locally specified package instead
+    	exclude group: 'com.google.apis', module: 'google-api-services-mapsengine'
+    }
+    // hacks to get the snapshot 0.2 to work locally
+    compile 'com.google.api-client:google-api-client:1.18.0-rc'
+
 
     // Other libraries
     compile 'org.mortbay.jetty:jetty:6.1.+'

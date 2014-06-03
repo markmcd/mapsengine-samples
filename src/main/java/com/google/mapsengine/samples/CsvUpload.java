@@ -5,6 +5,7 @@ import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -12,10 +13,24 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.mapsengine.MapsEngine;
 import com.google.api.services.mapsengine.MapsEngineScopes;
+import com.google.api.services.mapsengine.model.Datasource;
+import com.google.api.services.mapsengine.model.DisplayRule;
 import com.google.api.services.mapsengine.model.Feature;
+import com.google.api.services.mapsengine.model.FeaturesBatchInsertRequest;
+import com.google.api.services.mapsengine.model.IconStyle;
+import com.google.api.services.mapsengine.model.Layer;
+import com.google.api.services.mapsengine.model.Map;
+import com.google.api.services.mapsengine.model.MapItem;
+import com.google.api.services.mapsengine.model.MapLayer;
+import com.google.api.services.mapsengine.model.PointStyle;
+import com.google.api.services.mapsengine.model.PublishResponse;
 import com.google.api.services.mapsengine.model.Schema;
 import com.google.api.services.mapsengine.model.Table;
 import com.google.api.services.mapsengine.model.TableColumn;
+import com.google.api.services.mapsengine.model.VectorStyle;
+import com.google.api.services.mapsengine.model.ZoomLevels;
+import com.google.maps.clients.BackOffWhenRateLimitedRequestInitializer;
+import com.google.maps.clients.HttpRequestInitializerPipeline;
 import com.google.maps.clients.mapsengine.geojson.Point;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -27,11 +42,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Demonstrate uploading local CSV file into a new Maps Engine table,
@@ -56,8 +70,8 @@ public class CsvUpload {
   private static final String CLIENT_SECRETS_FILE = "res/client_secrets.json";
   private static final File CREDENTIAL_STORE = new File(System.getProperty("user.home"),
       ".credentials/mapsengine.json");
-  private static final Collection<String> SCOPES =
-      Collections.singleton(MapsEngineScopes.MAPSENGINE);
+  private static final Collection<String> SCOPES = Arrays.asList(MapsEngineScopes.MAPSENGINE);
+  private static final String DEFAULT_ACCESS_LIST = "Map Editors";
 
   /**
    * Credentials are stored against a user ID. This app does not manage multiple identities and
@@ -95,32 +109,67 @@ public class CsvUpload {
           + "new table");
       System.exit(1);
     }
+    String fileName = args[0];
+    String projectId = args[1];
 
-    System.out.println("Loading CSV data from " + args[0]);
-    loadCsvData(args[0]);
+    System.out.println("Loading CSV data from " + fileName);
+    loadCsvData(fileName);
 
     System.out.println("Authorizing. If this takes a while, check your browser.");
     Credential credential = authorizeUser();
     System.out.println("Authorization successful!");
 
+    // Set up the required initializers to 1) authenticate the request and 2) back off if we
+    // start hitting the server too quickly.
+    HttpRequestInitializer requestInitializers = new HttpRequestInitializerPipeline(
+        Arrays.asList(credential, new BackOffWhenRateLimitedRequestInitializer()));
+
     // The MapsEngine object will be used to perform the requests.
-    engine = new MapsEngine.Builder(httpTransport, jsonFactory, credential)
+    engine = new MapsEngine.Builder(httpTransport, jsonFactory, requestInitializers)
         .setApplicationName(APPLICATION_NAME)
         .build();
 
-    System.out.println("Creating an empty table in Maps Engine, under project ID " + args[1]);
-    Table table = createTable(args[0], args[1]);
+    System.out.println("Creating an empty table in Maps Engine, under project ID " + projectId);
+    Table table = createTable(fileName, projectId);
     System.out.println("Table created, ID is: " + table.getId());
 
-    //insertData();
+    System.out.println("Starting the batch insert operation.");
+    insertData(table);
+    System.out.println("Done. Inserted " + tableData.size() + " rows.");
 
+    System.out.println("Creating a new layer.");
+    Layer layer = createLayer(table);
+    System.out.println("Layer created, ID is: " + layer.getId());
 
-    // 2. create table
-    // 3. batch insert
-    // 4. create layer
-    // 5. publish layer
-    // 6. create map
-    // 7. publish map
+    System.out.print("Waiting for layer processing to complete");
+    layer = waitUntilLayerProcessed(layer);
+    System.out.println(" done!");
+
+    System.out.println("Publishing layer.");
+    publishLayer(layer);
+    System.out.println("Done.");
+
+    System.out.println("Creating a new map.");
+    Map map = createMap(layer);
+    System.out.println("Map created, ID is: " + map.getId());
+
+    System.out.print("Publishing map.");
+    // TODO(1): This shouldn't be an IOException here. Need to work out the bug in the wrapper.
+    // TODO(2): Looping until there's no error isn't great. Need info in the response body.
+    boolean published = false;
+    while (!published) {
+      try {
+        System.out.print(".");
+        engine.maps().publish(map.getId()).execute();
+        published = true;
+      } catch (IOException ex) {
+        // simply retry
+      }
+    }
+    System.out.println(" done.");
+    System.out.println("Publishing complete. You can view the map here: " +
+        String.format("https://mapsengine.google.com/%s/mapview/?authuser=0", map.getId()));
+
   }
 
   /**
@@ -128,11 +177,12 @@ public class CsvUpload {
    */
   private static class CsvSchema {
     Schema tableSchema;
-    Map<Integer, String> columnIndexToName;
+    java.util.Map<Integer, String> columnIndexToName;
     int latIndex;
     int lngIndex;
   }
 
+  /** Open the file described and load its data. */
   private void loadCsvData(String fileName) throws IOException {
     File inputFile = new File(fileName);
     if (!inputFile.exists()) {
@@ -147,7 +197,7 @@ public class CsvUpload {
       schema = generateSchema(columns, line);
 
       while (line != null) {
-        Map<String, Object> properties = new HashMap<String, Object>(line.length);
+        java.util.Map<String, Object> properties = new HashMap<String, Object>(line.length);
         for (int i = 0; i < line.length; i++) {
           if (i != schema.latIndex && i != schema.lngIndex) {
             // Put: [ column name, row value ]
@@ -302,16 +352,88 @@ public class CsvUpload {
     }
   }
 
-  /**
-   * Creates an empty table in your maps engine account.
-   */
+  /** Creates an empty table in your maps engine account. */
   private Table createTable(String tableName, String projectId) throws IOException {
     Table newTable = new Table()
         .setName(tableName)
         .setProjectId(projectId)
-        .setDraftAccessList("Map Editors")  // Use the default editors ACL.
-        .setSchema(schema.tableSchema);
+        .setDraftAccessList(DEFAULT_ACCESS_LIST)
+        .setSchema(schema.tableSchema)
+        .setTags(Arrays.asList("CSV Upload", "Samples"));
     return engine.tables().create(newTable).execute();
+  }
+
+  /** Performs a batch insert of data into the table. */
+  private void insertData(Table table) throws IOException {
+    FeaturesBatchInsertRequest payload = new FeaturesBatchInsertRequest();
+    payload.setFeatures(tableData);
+    engine.tables().features().batchInsert(table.getId(), payload).execute();
+  }
+
+  /** Creates a layer using the table provided. */
+  private Layer createLayer(Table table) throws IOException {
+    // Create a basic layer style. For more detail on the different icons available to use,
+    // check out the list: https://www.google.com/fusiontables/DataSource?dsrcid=308519#map:id=3
+    // Prefix any listed name with 'gx_' to use in your own app.
+    VectorStyle style = new VectorStyle()
+        .setType("displayRule")
+        .setDisplayRules(Arrays.asList(
+            new DisplayRule()
+                .setZoomLevels(new ZoomLevels().setMax(24).setMin(0))
+                .setPointOptions(new PointStyle()
+                    .setIcon(new IconStyle().setName("gx_go"))) // 'go' marker icon.
+        ));
+
+    Layer newLayer = new Layer()
+        .setDatasourceType("table")
+        .setDraftAccessList(DEFAULT_ACCESS_LIST)
+        .setName(table.getName())
+        .setProjectId(table.getProjectId())
+        .setDatasources(Arrays.asList(new Datasource().setId(table.getId())))
+        .setStyle(style);
+
+    return engine.layers().create(newLayer)
+        .setProcess(true) // flag that this layer should be processed immediately
+        .execute();
+  }
+
+  /** Block until the provided layer has been marked as processed. Returns the new layer. */
+  private Layer waitUntilLayerProcessed(Layer layer) {
+    while (!"complete".equals(layer.getProcessingStatus())) {
+      // This is safe to run in a while loop as it executes synchronously and we have used a
+      // BackOffWhenRateLimitedRequestInitializer when creating the engine.
+      try {
+        layer = engine.layers().get(layer.getId()).execute();
+        System.out.print(".");
+      } catch (IOException ex) {
+        // If we lose network connectivity here, it's safe to blindly retry.
+        System.out.print("?");
+      }
+    }
+    return layer;
+  }
+
+  /** Publish the given Layer */
+  private PublishResponse publishLayer(Layer layer) throws IOException {
+    return engine.layers().publish(layer.getId()).execute();
+  }
+
+  /** Creates a map using the layer provided */
+  private Map createMap(Layer layer) throws IOException {
+    Map newMap = new Map()
+        .setProjectId(layer.getProjectId())
+        .setName(layer.getName())
+        .setDraftAccessList(DEFAULT_ACCESS_LIST);
+
+    MapLayer contents = new MapLayer()
+        .setId(layer.getId())
+        .setVisibility("defaultOn")
+        .setKey("layer"); // 'layer' is the key for referring to this layer in shorthand
+
+    // TODO: a MapLayer should be a MapItem.
+    newMap.setContents(Arrays.asList((MapItem) contents));
+
+    return engine.maps().create(newMap).execute();
   }
 
 }
