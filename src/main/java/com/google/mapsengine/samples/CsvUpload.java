@@ -5,6 +5,7 @@ import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -84,7 +85,7 @@ public class CsvUpload {
   private static final int NOT_SEEN = -1;
 
   private final List<Feature> tableData = new ArrayList<Feature>();
-  private CsvSchema schema;
+  private Schema schema;
   private MapsEngine engine;
 
   private final HttpTransport httpTransport = new NetHttpTransport();
@@ -130,11 +131,11 @@ public class CsvUpload {
         .build();
 
     System.out.println("Creating an empty table in Maps Engine, under project ID " + projectId);
-    Table table = createTable(fileName, projectId);
+    Table table = createTable(fileName, schema, projectId);
     System.out.println("Table created, ID is: " + table.getId());
 
     System.out.println("Starting the batch insert operation.");
-    insertData(table);
+    insertData(table, tableData);
     System.out.println("Done. Inserted " + tableData.size() + " rows.");
 
     System.out.println("Creating a new layer.");
@@ -154,27 +155,14 @@ public class CsvUpload {
     System.out.println("Map created, ID is: " + map.getId());
 
     System.out.print("Publishing map.");
-    // TODO(1): This shouldn't be an IOException here. Need to work out the bug in the wrapper.
-    // TODO(2): Looping until there's no error isn't great. Need info in the response body.
-    boolean published = false;
-    while (!published) {
-      try {
-        System.out.print(".");
-        engine.maps().publish(map.getId()).execute();
-        published = true;
-      } catch (IOException ex) {
-        // simply retry
-      }
-    }
+    publishMap(map);
     System.out.println(" done.");
-    System.out.println("Publishing complete. You can view the map here: " +
-        String.format("https://mapsengine.google.com/%s/mapview/?authuser=0", map.getId()));
+    System.out.println("Publishing complete. You can view the map here: "
+        + String.format("https://mapsengine.google.com/%s/mapview/?authuser=0", map.getId()));
 
   }
 
-  /**
-   * Defines a mapping between a Maps Engine table schema and our equivalent CSV-type model.
-   */
+  /** Defines a mapping between a Maps Engine table schema and our equivalent CSV model. */
   private static class CsvSchema {
     Schema tableSchema;
     java.util.Map<Integer, String> columnIndexToName;
@@ -194,19 +182,20 @@ public class CsvUpload {
       CSVReader reader = new CSVReader(new FileReader(inputFile));
       String[] columns = reader.readNext();
       String[] line = reader.readNext();
-      schema = generateSchema(columns, line);
+      CsvSchema csvSchema = generateSchema(columns, line);
+      schema = csvSchema.tableSchema;
 
       while (line != null) {
         java.util.Map<String, Object> properties = new HashMap<String, Object>(line.length);
         for (int i = 0; i < line.length; i++) {
-          if (i != schema.latIndex && i != schema.lngIndex) {
+          if (i != csvSchema.latIndex && i != csvSchema.lngIndex) {
             // Put: [ column name, row value ]
-            properties.put(schema.columnIndexToName.get(i), line[i]);
+            properties.put(csvSchema.columnIndexToName.get(i), line[i]);
           }
         }
         // Create the Geometry for this row.
-        Point geometry = new Point(Double.parseDouble(line[schema.latIndex]),
-            Double.parseDouble(line[schema.lngIndex]));
+        Point geometry = new Point(Double.parseDouble(line[csvSchema.latIndex]),
+            Double.parseDouble(line[csvSchema.lngIndex]));
 
         // Convert the Geometry into a Feature by adding properties.  Then save it.
         tableData.add(geometry.asFeature(properties));
@@ -249,7 +238,7 @@ public class CsvUpload {
       } else if (LNG_COLUMN_NAME.equals(columnName)) {
         csvSchema.lngIndex = i;
       } else {
-        // Infer the column type: if it looks like an integer, make it so.  Default to string.
+        // Infer the column type: if it looks like an integer, make it so. Default to string.
         boolean isInteger = false;
         try {
           Integer.parseInt(firstRow[i]);
@@ -264,8 +253,7 @@ public class CsvUpload {
         // The first (ID) column must be a string, even if it's numeric.
         if (isInteger && i != 0) {
           col.setType("integer");
-        }
-        else {
+        } else {
           col.setType("string");
         }
 
@@ -346,27 +334,26 @@ public class CsvUpload {
 
     } catch (FileNotFoundException e) {
       throw new AssertionError("File not found should already be handled.", e);
-    }
-    finally {
+    } finally {
       localServer.stop();
     }
   }
 
   /** Creates an empty table in your maps engine account. */
-  private Table createTable(String tableName, String projectId) throws IOException {
+  private Table createTable(String tableName, Schema schema, String projectId) throws IOException {
     Table newTable = new Table()
         .setName(tableName)
         .setProjectId(projectId)
         .setDraftAccessList(DEFAULT_ACCESS_LIST)
-        .setSchema(schema.tableSchema)
+        .setSchema(schema)
         .setTags(Arrays.asList("CSV Upload", "Samples"));
     return engine.tables().create(newTable).execute();
   }
 
   /** Performs a batch insert of data into the table. */
-  private void insertData(Table table) throws IOException {
-    FeaturesBatchInsertRequest payload = new FeaturesBatchInsertRequest();
-    payload.setFeatures(tableData);
+  private void insertData(Table table, List<Feature> features) throws IOException {
+    FeaturesBatchInsertRequest payload = new FeaturesBatchInsertRequest()
+        .setFeatures(features);
     engine.tables().features().batchInsert(table.getId(), payload).execute();
   }
 
@@ -425,15 +412,30 @@ public class CsvUpload {
         .setName(layer.getName())
         .setDraftAccessList(DEFAULT_ACCESS_LIST);
 
-    MapLayer contents = new MapLayer()
+    List<MapItem> layers = new ArrayList<MapItem>();
+
+    MapLayer layer1 = new MapLayer()
         .setId(layer.getId())
         .setVisibility("defaultOn")
         .setKey("layer"); // 'layer' is the key for referring to this layer in shorthand
+    layers.add(layer1);
 
-    // TODO: a MapLayer should be a MapItem.
-    newMap.setContents(Arrays.asList((MapItem) contents));
+    newMap.setContents(layers);
 
     return engine.maps().create(newMap).execute();
+  }
+
+  /** Mark the provided map as "published", making it visible. */
+  private PublishResponse publishMap(Map map) throws IOException {
+    while (true) {
+      try {
+        System.out.print(".");
+        return engine.maps().publish(map.getId()).execute();
+      } catch (GoogleJsonResponseException ex) {
+        // Unfortunately we have no way to test that publishing has succeeded other than catching
+        // this exception.
+      }
+    }
   }
 
 }
