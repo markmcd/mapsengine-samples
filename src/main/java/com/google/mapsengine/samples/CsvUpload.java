@@ -76,7 +76,7 @@ public class CsvUpload {
 
   /**
    * Credentials are stored against a user ID. This app does not manage multiple identities and
-   * will always authorize against the same user, so we use a single, default,  user ID.
+   * will always authorize against the same user, so we use a single, default, user ID.
    */
   private static final String DEFAULT_USER_ID = "default";
 

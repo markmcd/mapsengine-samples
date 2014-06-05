@@ -9,7 +9,7 @@ if (!project.hasProperty('googleClientVersion')) {
     ext.googleClientVersion = '1.18.0-rc'
 }
 if (!project.hasProperty('mapsengineClientVersion')) {
-    ext.mapsengineClientVersion = 'exp2-rev20140529-' + googleClientVersion
+    ext.mapsengineClientVersion = 'v1-rev16-' + googleClientVersion
 }
 
 repositories {
