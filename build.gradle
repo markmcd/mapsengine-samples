@@ -23,12 +23,8 @@ dependencies {
     compile "com.google.oauth-client:google-oauth-client-servlet:" + project.ext.googleClientVersion
     compile "com.google.apis:google-api-services-mapsengine:" + project.ext.mapsengineClientVersion
     compile "com.google.oauth-client:google-oauth-client-jetty:" + project.ext.googleClientVersion
-    // TODO: publish wrapper v0.2 and remove these
-    compile('com.google.maps:mapsengine-api-java-wrapper:0.2-SNAPSHOT') {
-    //compile('com.google.maps:mapsengine-api-java-wrapper:0.1') {
-    	// use locally specified package instead
-    	exclude group: 'com.google.apis', module: 'google-api-services-mapsengine'
-    }
+    // TODO: publish wrapper v0.2 and remove this
+    compile 'com.google.maps:mapsengine-api-java-wrapper:0.2-SNAPSHOT'
     // hacks to get the snapshot 0.2 to work locally
     compile 'com.google.api-client:google-api-client:1.18.0-rc'
 
