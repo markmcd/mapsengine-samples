@@ -205,7 +205,9 @@ public class CsvUpload {
 
     } catch (FileNotFoundException e) {
       // This should be guarded by the File.exists() checks above.
-      throw new AssertionError("File not found should already be handled", e);
+      AssertionError newEx = new AssertionError("File not found should already be handled");
+      newEx.initCause(e);
+      throw newEx;
     }
   }
 
@@ -333,7 +335,9 @@ public class CsvUpload {
       return flow.createAndStoreCredential(tokenResponse, DEFAULT_USER_ID);
 
     } catch (FileNotFoundException e) {
-      throw new AssertionError("File not found should already be handled.", e);
+      AssertionError newEx = new AssertionError("File not found should already be handled.");
+      newEx.initCause(e);
+      throw newEx;
     } finally {
       localServer.stop();
     }
