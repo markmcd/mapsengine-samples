@@ -60,7 +60,7 @@ import java.util.List;
  * The table schema is inferred from the file in a naive fashion, according to these rules:
  *  - Column names are taken from the first row in the file.
  *  - The first column is used as the ID column
- *  - There must be a 'lat' column and a 'lng' column, which are used to generate a Point
+ *  - There must be a "lat" column and a "lng" column, which are used to generate a Point
  *  - Column types are inferred by the first row of data (2nd row in the file)
  *    - If the value can be parsed as an integer, the column becomes an integer type
  *    - Otherwise the column is a string
