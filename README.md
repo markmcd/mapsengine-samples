@@ -7,6 +7,8 @@ samples are included directly into the [Maps Engine documentation](https://devel
 ![Build Status](https://api.travis-ci.org/googlemaps/mapsengine-samples-java.svg)
 ![Analytics](https://ga-beacon.appspot.com/UA-12846745-20/mapsengine-samples-java/readme?pixel)
 
+Many of these samples will use the Maps Engine Java API wrapper, which you can check out [here](https://github.com/googlemaps/mapsengine-api-java-wrapper).
+
 Web Server OAuth Sample
 =======================
 
