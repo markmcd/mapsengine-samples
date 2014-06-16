@@ -117,7 +117,7 @@ class WebServer {
       response.setContentType("text/html");
       try {
         // Serve up index.html and substitute some variables required by the client.
-        response.getWriter().print(new Scanner(new File("index.html"), "UTF-8")
+        response.getWriter().print(new Scanner(new File("res/index.html"), "UTF-8")
             .useDelimiter("\\A").next()
             .replaceAll("[{]{2}\\s*IS_AUTHED\\s*[}]{2}", String.valueOf(isAuthed))
             .replaceAll("[{]{2}\\s*APPLICATION_NAME\\s*[}]{2}", APPLICATION_NAME));

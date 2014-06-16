@@ -142,8 +142,8 @@ public class CsvUpload {
     Layer layer = createLayer(table);
     System.out.println("Layer created, ID is: " + layer.getId());
 
-    System.out.print("Waiting for layer processing to complete");
-    layer = waitUntilLayerProcessed(layer);
+    System.out.print("Processing layer.");
+    layer = processLayer(layer);
     System.out.println(" done!");
 
     System.out.println("Publishing layer.");
@@ -384,12 +384,15 @@ public class CsvUpload {
         .setStyle(style);
 
     return engine.layers().create(newLayer)
-        .setProcess(true) // flag that this layer should be processed immediately
+        .setProcess(false) // flag that this layer should not be processed immediately
         .execute();
   }
 
   /** Block until the provided layer has been marked as processed. Returns the new layer. */
-  private Layer waitUntilLayerProcessed(Layer layer) {
+  private Layer processLayer(Layer layer) throws IOException {
+    // Initiate layer processing.
+    engine.layers().process(layer.getId()).execute();
+
     while (!"complete".equals(layer.getProcessingStatus())) {
       // This is safe to run in a while loop as it executes synchronously and we have used a
       // BackOffWhenRateLimitedRequestInitializer when creating the engine.
@@ -426,6 +429,7 @@ public class CsvUpload {
 
     newMap.setContents(layers);
 
+    // Map processing is triggered automatically, so no need to set a flag during creation.
     return engine.maps().create(newMap).execute();
   }
 
@@ -434,10 +438,11 @@ public class CsvUpload {
     while (true) {
       try {
         System.out.print(".");
+        // Initially the map will be in a 'processing' state and will return '400 Bad Request'
+        // while processing is happening. Keep trying until it works.
         return engine.maps().publish(map.getId()).execute();
       } catch (GoogleJsonResponseException ex) {
-        // Unfortunately we have no way to test that publishing has succeeded other than catching
-        // this exception.
+        // Silently ignore the expected error.
       }
     }
   }
