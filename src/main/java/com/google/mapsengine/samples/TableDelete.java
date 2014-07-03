@@ -101,6 +101,7 @@ public class TableDelete {
     }
   }
 
+  /** Delete a table, including any layers displaying the table. */
   private void deleteTable(String tableId) throws IOException {
     LOG.info("Finding layers belonging to table.");
     ParentsListResponse tableParents = engine.tables().parents().list(tableId).execute();
@@ -121,6 +122,7 @@ public class TableDelete {
 
   }
 
+  /** Delete the provided layers, including any maps where they are used. */
   private void deleteLayers(Set<String> layerIds) throws IOException {
     for (String layerId : layerIds) {
       assertLayerIsNotPublished(layerId);
