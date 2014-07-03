@@ -73,8 +73,8 @@ public class CsvUpload {
   private Schema schema;
   private MapsEngine engine;
 
-    private final HttpTransport httpTransport = new NetHttpTransport();
-    private final JsonFactory jsonFactory = new GsonFactory();
+  private final HttpTransport httpTransport = new NetHttpTransport();
+  private final JsonFactory jsonFactory = new GsonFactory();
 
   public static void main(String[] args) {
     try {
