@@ -41,7 +41,6 @@ public class TableDelete {
   private static final Logger LOG = Logger.getLogger(TableDelete.class.getName());
 
   private MapsEngine engine;
-  private BackOffWhenRateLimitedRequestInitializer retryHandler;
 
   private final HttpTransport httpTransport = new NetHttpTransport();
   private final JsonFactory jsonFactory = new GsonFactory();
@@ -73,9 +72,8 @@ public class TableDelete {
     Credential credential = Utils.authorizeUser(httpTransport, jsonFactory, SCOPES);
 
     // Set up automatic retry of failed requests.
-    retryHandler = new BackOffWhenRateLimitedRequestInitializer();
-    HttpRequestInitializerPipeline initializers =
-        new HttpRequestInitializerPipeline(credential, retryHandler);
+    HttpRequestInitializerPipeline initializers = new HttpRequestInitializerPipeline(credential,
+        new BackOffWhenRateLimitedRequestInitializer());
 
     engine = new MapsEngine.Builder(httpTransport, jsonFactory, initializers)
         .setApplicationName(APPLICATION_NAME)
