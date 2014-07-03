@@ -38,7 +38,7 @@ public class UploadRaster {
 
   private MapsEngine engine;
 
-  private HttpTransport httpTransport = new NetHttpTransport();
+  private final HttpTransport httpTransport = new NetHttpTransport();
   private final JsonFactory jsonFactory = new GsonFactory();
 
   public static void main(String[] args) {
@@ -52,8 +52,9 @@ public class UploadRaster {
   }
 
   private void run(String[] args) throws IOException {
-    if (args.length != 2) {
+    if (args.length < 2) {
       System.err.println("Usage: java ...UploadRaster projectid filename1.ext [file2.ex2 ...]");
+      System.err.println(" Where each file provided will be uploaded to a single image.");
       System.exit(1);
     }
     String projectId = args[0];
@@ -65,6 +66,19 @@ public class UploadRaster {
         .setApplicationName(APPLICATION_NAME)
         .build();
 
+    Image rasterTemplate = prepareImageUpload(projectId, fileNames);
+
+    // Upload the files.
+    for (String fileName : fileNames) {
+      System.out.println("Processing " + fileName);
+      uploadFile(rasterTemplate, fileName);
+    }
+
+    System.out.println("Done!");
+  }
+
+  /** Upload an empty asset to the API, containing the metadata. */
+  private Image prepareImageUpload(String projectId, String[] fileNames) throws IOException {
     // Build the list of files. Note that the File used here is *not* java.io.File.
     List<com.google.api.services.mapsengine.model.File> pendingFiles =
         new ArrayList<com.google.api.services.mapsengine.model.File>(fileNames.length);
@@ -81,47 +95,44 @@ public class UploadRaster {
         .setAttribution(MY_ATTRIBUTION) // This references the attribution name, as set up in the UI
         .setRasterType("image");
 
-    Image rasterTemplate = engine.rasters().upload(emptyRaster).execute();
+    return engine.rasters().upload(emptyRaster).execute();
+  }
 
-    // Upload the files.
-    for (String fileName : fileNames) {
-      System.out.println("Processing " + fileName);
+  /** Upload a file to the empty image, with a progress indicator. */
+  private void uploadFile(Image emptyImage, String fileName) throws IOException {
+    // This is a java.io.File.
+    File file = new File(fileName);
+    InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
+    // Files.probeContentType requires Java 7.
+    String contentType = Files.probeContentType(file.toPath());
+    InputStreamContent contentStream = new InputStreamContent(contentType, fileInputStream);
+    contentStream.setLength(file.length()); // optional, but required for tracking progress below.
 
-      // This is a java.io.File.
-      File file = new File(fileName);
-      InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
-      // Files.probeContentType requires Java 7.
-      String contentType = Files.probeContentType(file.toPath());
-      InputStreamContent contentStream = new InputStreamContent(contentType, fileInputStream);
-      contentStream.setLength(file.length()); // optional, but required for progress tracking below.
+    Rasters.Files.Insert uploadRequest =
+        engine.rasters().files().insert(emptyImage.getId(), fileName, contentStream);
 
-      Rasters.Files.Insert uploadRequest =
-          engine.rasters().files().insert(rasterTemplate.getId(), fileName, contentStream);
-
-      // This part is optional, but allows us to monitor the progress.
-      uploadRequest.getMediaHttpUploader().setProgressListener(new MediaHttpUploaderProgressListener() {
-        @Override
-        public void progressChanged(MediaHttpUploader uploader) throws IOException {
-          switch (uploader.getUploadState()) {
-            case INITIATION_STARTED:
-              System.out.println("Initiation has started!");
-              break;
-            case INITIATION_COMPLETE:
-              System.out.println("Initiation is complete!");
-              break;
-            case MEDIA_IN_PROGRESS:
-              System.out.println(String.format("%.2f%%", uploader.getProgress() * 100.0));
-              break;
-            case MEDIA_COMPLETE:
-              System.out.println("Upload is complete!");
-          }
+    // This part is optional, but allows us to monitor the progress.
+    uploadRequest.getMediaHttpUploader().setProgressListener(new MediaHttpUploaderProgressListener() {
+      @Override
+      public void progressChanged(MediaHttpUploader uploader) throws IOException {
+        switch (uploader.getUploadState()) {
+          case INITIATION_STARTED:
+            LOG.info("Initiation has started!");
+            break;
+          case INITIATION_COMPLETE:
+            LOG.info("Initiation is complete!");
+            break;
+          case MEDIA_IN_PROGRESS:
+            LOG.info(String.format("%.2f%%", uploader.getProgress() * 100.0));
+            break;
+          case MEDIA_COMPLETE:
+            LOG.info("Upload is complete!");
+            break;
         }
-      });
+      }
+    });
 
-      // Do it!
-      uploadRequest.execute();
-    }
-
-    System.out.println("Done!");
+    // Do it!
+    uploadRequest.execute();
   }
 }
