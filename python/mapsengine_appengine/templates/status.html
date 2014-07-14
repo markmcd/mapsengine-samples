@@ -1,0 +1,70 @@
+{% extends "templates/base.html" %}
+{% block body %}
+
+    {% if error %}
+    <h3>{{error.message}}</h3>
+    {% else %}
+
+
+    Name:  <b>{{name}}</b>
+    <br><br>
+
+    Processing Status:  <b>{{processingStatus}}</b>
+
+    {% if processingStatus != "complete" %}
+    <br><br>
+    Files:
+    <table>
+      <thead>
+        <td>filename</td>
+        <td>size</td>
+        <td>status</td>
+      </thead>
+      {% for file in files %}
+      <tr>
+        <td>{{file.filename}}</td>
+        <td>{{file.size}}</td>
+        <td> {{file.uploadStatus}}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    <br><br>
+    Description: {{description}}
+    <br><br>
+
+    Tags:
+    {% for tag in tags %}
+      {{tag}}
+    {% endfor %}
+    <br><br>
+
+    Datasource ID:
+    <a target="_blank" href="https://earthbuilder.google.com/admin/#RepositoryPlace:cid={{cid}}&v=DETAIL_INFO&aid={{id}}">{{id}}</a>
+    <br><br>
+
+    {% if schema %}
+      Schema:<br>
+      {% for item in schema.columns %}
+        {{ item.name}} ({{item.type}})<br>
+        {% endfor %}
+    {% else %}
+      Schema information not yet available.
+    {% endif %}
+
+    {% if bbox %}
+      <br><br>
+      Bounding box<br>
+      <img src="http://maps.googleapis.com/maps/api/staticmap?size=200x200&sensor=false&path=color%3ared|weight:2|fillcolor%3awhite|{{bbox.1}},{{bbox.0}}|{{bbox.1}},{{bbox.2}}|{{bbox.3}},{{bbox.2}}|{{bbox.3}},{{bbox.0}}|{{bbox.1}},{{bbox.0}}"><br>
+      {{ bbox  }}
+
+    {% else %}
+      Bounding Box information not yet available.
+    {% endif %}
+
+    <br><br>
+    Encoding:  {{sourceEncoding }}
+
+    {% endif %}
+
+{% endblock %}
