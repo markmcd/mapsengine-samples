@@ -116,26 +116,29 @@ function listProjects() {
   doRequest({
     path: '/mapsengine/v1/projects',
     method: 'GET',
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#list-projects-request').text(requestText);
     },
-    processResponse: function (response) {
+    processResponse: function(response) {
       if (response.result.projects.length > 0) {
-        var html = '<select id="project-selector">';
-        response.result.projects.forEach(function (project, index, projects) {
-          html += '<option value="' + project.id + '">' + project.name +
-              '</option>';
+        var select = $('<select id="project-selector">');
+        response.result.projects.forEach(function(project, index, projects) {
+          select.append($('<option/>').val(project.id).text(project.name));
         });
-        html += '</select>';
 
-        $('#project-name').html(html);
+        $('#project-name').empty().append(select);
+        var goButton = $('#go-button');
+        goButton.click(function() {
+          createVectorTable($('#project-selector').val());
+        });
+        goButton.removeAttr('disabled');
       } else {
         window.alert('Sorry, you appear to have no Mapsengine Projects');
       }
 
       $('#list-projects-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#list-projects-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -182,16 +185,16 @@ function createVectorTable(projectId) {
       draftAccessList: 'Map Editors',
       schema: tableSchema
     },
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#create-table-request').text(requestText);
     },
-    processResponse: function (response) {
-      window.setTimeout(function () {
+    processResponse: function(response) {
+      window.setTimeout(function() {
         insertTableFeatures(projectId, response.result.id);
       }, 1000);
       $('#create-table-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#create-table-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -326,16 +329,16 @@ function insertTableFeatures(projectId, tableId) {
     body: {
       features: cities
     },
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#insert-table-features-request').text(requestText);
     },
-    processResponse: function (response) {
-      window.setTimeout(function () {
+    processResponse: function(response) {
+      window.setTimeout(function() {
         pollTableStatus(projectId, tableId);
       }, 1000);
       $('#insert-table-features-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#insert-table-features-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -349,16 +352,16 @@ function pollTableStatus(projectId, tableId) {
   doRequest({
     path: '/mapsengine/v1/tables/' + tableId,
     method: 'GET',
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#poll-table-status-request').text(requestText);
     },
-    processResponse: function (response) {
-      window.setTimeout(function () {
+    processResponse: function(response) {
+      window.setTimeout(function() {
         createLayer(projectId, tableId);
       }, 1000);
       $('#poll-table-status-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#poll-table-status-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -400,16 +403,16 @@ function createLayer(projectId, tableId) {
     params: {
       process: true
     },
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#create-layer-request').text(requestText);
     },
-    processResponse: function (response) {
-      window.setTimeout(function () {
+    processResponse: function(response) {
+      window.setTimeout(function() {
         pollLayerStatus(projectId, response.result.id);
       }, 1000);
       $('#create-layer-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#create-layer-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -424,10 +427,10 @@ function pollLayerStatus(projectId, layerId) {
   doRequest({
     path: '/mapsengine/v1/layers/' + layerId,
     method: 'GET',
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#poll-layer-request').text(requestText);
     },
-    processResponse: function (response) {
+    processResponse: function(response) {
       if (response.result.processingStatus == 'complete') {
         window.setTimeout(publishLayer, 1000, projectId, layerId);
       } else if (response.result.processingStatus == 'processing') {
@@ -439,7 +442,7 @@ function pollLayerStatus(projectId, layerId) {
       }
       $('#poll-layer-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#poll-layer-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -453,16 +456,16 @@ function publishLayer(projectId, layerId) {
   doRequest({
     path: '/mapsengine/v1/layers/' + layerId + '/publish',
     method: 'POST',
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#publish-layer-request').text(requestText);
     },
-    processResponse: function (response) {
-      window.setTimeout(function () {
+    processResponse: function(response) {
+      window.setTimeout(function() {
         createMap(projectId, layerId);
       }, 1000);
       $('#publish-layer-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#publish-layer-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -487,16 +490,16 @@ function createMap(projectId, layerId) {
         }
       ]
     },
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#create-map-request').text(requestText);
     },
-    processResponse: function (response) {
-      window.setTimeout(function () {
+    processResponse: function(response) {
+      window.setTimeout(function() {
         publishMap(projectId, response.result.id);
       }, 1000);
       $('#create-map-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       $('#create-map-response').text('Error response:\n\n' +
           JSON.stringify(response, null, 2));
     }
@@ -514,13 +517,13 @@ function publishMap(projectId, mapId) {
       id: mapId,
       projectId: projectId
     },
-    processRequest: function (requestText) {
+    processRequest: function(requestText) {
       $('#publish-map-request').text(requestText);
     },
-    processResponse: function (response) {
+    processResponse: function(response) {
       $('#publish-map-response').text(JSON.stringify(response, null, 2));
     },
-    processErrorResponse: function (response) {
+    processErrorResponse: function(response) {
       // Retry on 409, map wasn't ready to publish
       if (response.status == 409) {
         window.setTimeout(publishMap, 1000, projectId, mapId);
@@ -552,9 +555,9 @@ function doRequest(args) {
       method: args.method,
       body: args.body,
       params: args.params
-    }).then(function (response) {
+    }).then(function(response) {
       args.processResponse(response);
-    }, function (failureResponse) {
+    }, function(failureResponse) {
       if (failureResponse.status == 503 ||
           (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
            failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded')) {
