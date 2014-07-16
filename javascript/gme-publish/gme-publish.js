@@ -1,22 +1,57 @@
+/**
+ * @file This file contains all the JavaScript to authenticate to Google's
+ * Maps Engine API servers, and carry out the following steps in publishing
+ * GIS style point data as a globally accessible map:
+ *
+ * Steps:
+ *  1: Authenticate using Google Login - @see {@link handleClientLoad}
+ *  2: List the Projects that a user can see - @see {@link listProjects}
+ *  3: Create a Table to store points in - @see {@link createVectorTable}
+ *  4: Insert the capital cities of Australia's states - @see {@link insertTableFeatures}
+ *  5: Retrieve above table - @see {link pollTableStatus}
+ *  6: Create a layer with above table as source - @see {@link createLayer}
+ *  7: Poll layer until processing is finished - @see {@link pollLayerStatus}
+ *  8: Publish the layer created above - @see {@link publishLayer}
+ *  9: Create a map with the layer as source - @see {@link createMap}
+ *  10: Publish map created above - @see {@link publishMap}
+ */
 
-// Step 1, Auth User with OAuth.
-// Enter a client ID for a web application from the Google Developer Console.
-// In your Developer Console project, add a JavaScript origin that corresponds
-// to the domain where you will be running the script.
+/**
+ * Enter a client ID for a web application from the Google Developer Console.
+ * In your Developer Console project, add a JavaScript origin that corresponds
+ * to the domain where you will be running the script.
+ *
+ * See https://developers.google.com/maps-engine/documentation/register for
+ * more detail.
+ */
 var clientId = 'PLEASE INSERT CLIENT ID HERE';
 
-// Enter the API key from the Google Developer Console - to handle any
-// unauthenticated requests in the code.
+/**
+ * Enter the API key from the Google Developer Console - to handle any
+ * unauthenticated requests in the code.
+ *
+ * See https://developers.google.com/maps-engine/documentation/register for
+ * more detail.
+ */
 var apiKey = 'PLEASE INSERT KEY HERE';
 
-// This is the authorization scope for Read/Write access to Google Maps Engine.
-// See https://developers.google.com/maps-engine/documentation/oauth/ for more
-// detail.
+/**
+ * This is the authorization scope for Read/Write access to Google Maps Engine.
+ *
+ * See https://developers.google.com/maps-engine/documentation/oauth/ for more
+ * detail.
+ */
 var scopes = ['https://www.googleapis.com/auth/mapsengine'];
 
-// This function is called when Google JavaScript client library loads - see the
-// gapi.js include in the HTML. It configures gapi with our API Key, and sets up
-// checking for authorization after the page has fully loaded.
+/**
+ * This function is called when Google JavaScript client library (gapi.js)
+ * loads. This function configures gapi.js with the API Key configured above,
+ * and sets up checking for authorization after the page has fully loaded.
+ *
+ * For full documentation on Google APIs Client Library for JavaScript, please
+ * see https://developers.google.com/api-client-library/javascript/reference/referencedocs
+ */
+
 function handleClientLoad() {
   if (clientId === 'PLEASE INSERT CLIENT ID HERE') {
     window.alert('Please see the README.md on how to configure this script');
@@ -26,18 +61,24 @@ function handleClientLoad() {
   }
 }
 
-// This function is called after the page is loaded, and makes gapi confirm if
-// the user has already authorized this application to act on the user's behalf,
-// for the Google Maps Engine Read/Write scope.
+/**
+ * This function is called after the page is loaded, and makes gapi confirm if
+ * the user has already authorized this application to act on the user's behalf,
+ * for the Google Maps Engine Read/Write scope.
+ */
 function checkAuth() {
   gapi.auth.authorize({ client_id: clientId, scope: scopes, immediate: true }, handleAuthResult);
 }
 
-// This function is called as a result of checking if the user has already
-// authorised this application. If yes, we make sure the authorize button is
-// hidden, and go ahead with doing our real work. If no, we make sure the
-// authorize button is visible, and configure the button to call this function
-// again when clicked.
+/**
+ * This function is called as a result of checking if the user has already
+ * authorised this application. If yes, we make sure the authorize button is
+ * hidden, and go ahead with doing our real work. If no, we make sure the
+ * authorize button is visible, and configure the button to call this function
+ * again when clicked.
+ *
+ * @param authResult The result of attempting to Authenticate the user.
+ */
 function handleAuthResult(authResult) {
   var authorizeButton = document.getElementById('authorize-button');
   if (authResult && !authResult.error) {
@@ -49,21 +90,28 @@ function handleAuthResult(authResult) {
   }
 }
 
-// This function is the non-immediate mode sibling of {@see checkAuth()} above.
-// Where checkAuth confirms if the user has already authorized this application,
-// this call to gapi.auth.authorize will show a pop-up asking the user for
-// authorization for this application to act on the user's behalf with the Google
-// Mapsengine scope.
+/**
+ * This function is the non-immediate mode sibling of {@see checkAuth()} above.
+ * Where checkAuth confirms if the user has already authorized this application,
+ * this call to gapi.auth.authorize will show a pop-up asking the user for
+ * authorization for this application to act on the user's behalf with the
+ * Google Mapsengine scope.
+ *
+ * @param event Button click event (ignored).
+ * @returns {boolean} Returns false to prevent further processing.
+ */
 function handleAuthClick(event) {
   gapi.auth.authorize({ client_id: clientId, scope: scopes, immediate: false }, handleAuthResult);
   return false;
 }
 
-// This function loads the Google Mapsengine v1 API discovery document, such
-// that we can use the API directly. Upon successfully loading the Mapsengine
-// API discovery document, we list the projects that the user has. To conform
-// with Mapsengine 1qps limit, we sleep for a second before starting the next
-// step.
+/**
+ * This function loads the Google Mapsengine v1 API discovery document, such
+ * that we can use the API directly. Upon successfully loading the Mapsengine
+ * API discovery document, we list the projects that the user has. To conform
+ * with Mapsengine 1qps limit, we sleep for a second before starting the next
+ * step.
+ */
 function listProjects() {
   doRequest({
     path: '/mapsengine/v1/projects',
@@ -94,9 +142,14 @@ function listProjects() {
   });
 }
 
-// This is the structure of our vector table of mapsengine data.
+/**
+ * The name of the Vector Table we will create in GME.
+ */
 var tableName = 'Cities of Australia';
 
+/**
+ * This is the structure of our vector table of mapsengine data.
+ */
 var tableSchema = {
   columns: [
     {
@@ -110,11 +163,15 @@ var tableSchema = {
   ]
 };
 
-// This function takes the connection to Maps Engine, the Project ID we found by
-// listing the user's projects, and creates a vector table to insert the data
-// into. Note, the schema we create is configured to the data we are about to
-// insert. If table creation is successful, we wait a second and then insert the
-// table data.
+/**
+ * This function takes the connection to Maps Engine, the Project ID we found by
+ * listing the user's projects, and creates a vector table to insert the data
+ * into. Note, the schema we create is configured to the data we are about to
+ * insert. If table creation is successful, we wait a second and then insert the
+ * table data.
+ *
+ * @param projectId Project ID of the GME API Project to create table in.
+ */
 function createVectorTable(projectId) {
   doRequest({
     path: '/mapsengine/v1/tables',
@@ -141,7 +198,9 @@ function createVectorTable(projectId) {
   });
 }
 
-// 4) Batch Insert features into table from user created points
+/**
+ * The data to insert into the table created above.
+ */
 var cities = [
   {
     type: 'Feature',
@@ -257,6 +316,9 @@ var cities = [
   }
 ];
 
+/**
+ * Insert data into a Vector Table, batch style.
+ */
 function insertTableFeatures(projectId, tableId) {
   doRequest({
     path: '/mapsengine/v1/tables/' + tableId + '/features/batchInsert',
@@ -280,7 +342,9 @@ function insertTableFeatures(projectId, tableId) {
   });
 }
 
-// 5) Poll Get table, waiting until table is complete.
+/**
+ * Retrieve Table details.
+ */
 function pollTableStatus(projectId, tableId) {
   doRequest({
     path: '/mapsengine/v1/tables/' + tableId,
@@ -301,8 +365,10 @@ function pollTableStatus(projectId, tableId) {
   });
 }
 
-// 6) Create a Layer, with the table uploaded above as the datasource, with
-// process=true to kick off processing.
+/**
+ * Create a Layer, with the table uploaded above as the datasource, with
+ * process=true to kick off processing.
+ */
 function createLayer(projectId, tableId) {
   doRequest({
     path: '/mapsengine/v1/layers',
@@ -350,8 +416,10 @@ function createLayer(projectId, tableId) {
   });
 }
 
-// 7) Poll the created `layer`, waiting for processingStatus to move
-// from `processing` to `complete`
+/**
+ * Poll the created `layer`, waiting for processingStatus to move
+ * from `processing` to `complete`
+ */
 function pollLayerStatus(projectId, layerId) {
   doRequest({
     path: '/mapsengine/v1/layers/' + layerId,
@@ -378,7 +446,9 @@ function pollLayerStatus(projectId, layerId) {
   });
 }
 
-// 8) Publish this Layer.
+/**
+ * Publish this Layer.
+ */
 function publishLayer(projectId, layerId) {
   doRequest({
     path: '/mapsengine/v1/layers/' + layerId + '/publish',
@@ -388,7 +458,7 @@ function publishLayer(projectId, layerId) {
     },
     processResponse: function (response) {
       window.setTimeout(function () {
-        mapCreate(projectId, layerId);
+        createMap(projectId, layerId);
       }, 1000);
       $('#publish-layer-response').text(JSON.stringify(response, null, 2));
     },
@@ -399,8 +469,10 @@ function publishLayer(projectId, layerId) {
   });
 }
 
-// 9) Create a Map.
-function mapCreate(projectId, layerId) {
+/**
+ * Create a Map.
+ */
+function createMap(projectId, layerId) {
   doRequest({
     path: '/mapsengine/v1/maps',
     method: 'POST',
@@ -431,7 +503,9 @@ function mapCreate(projectId, layerId) {
   });
 }
 
-// 10) Publish the Map.
+/**
+ * Publish the Map.
+ */
 function publishMap(projectId, mapId) {
   doRequest({
     path: '/mapsengine/v1/maps/' + mapId + '/publish',
@@ -481,7 +555,9 @@ function doRequest(args) {
     }).then(function (response) {
       args.processResponse(response);
     }, function (failureResponse) {
-      if (failureResponse.status == 503 || (failureResponse.result && failureResponse.result.error && (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' || failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded'))) {
+      if (failureResponse.status == 503 ||
+          (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
+           failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded')) {
         if (++retryAttempt > 10) {
           return;
         }
