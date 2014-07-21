@@ -1,6 +1,5 @@
 Maps Engine Javascript Samples
 ==============================
-
 This repository hosts a sample written in Javascript for Google Maps Engine.  
 The code from this sample is included directly into the [Maps Engine 
 documentation](https://developers.google.com/maps-engine/).
@@ -23,3 +22,5 @@ authorise the application to act on your behalf for Google Maps Engine API.
 Then you will need to select a GME API Project for this script to publish 
 it's data into. You will then be shown the full HTTP conversation between 
 your browser and the Maps Engine API endpoints.
+
+![Analytics](https://ga-beacon.appspot.com/UA-12846745-20/mapsengine-samples/javascript/readme?pixel)
