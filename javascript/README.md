@@ -1,6 +1,5 @@
 Maps Engine Javascript Samples
 ==============================
-
 This repository hosts a sample written in Javascript for Google Maps Engine.  
 The code from this sample is included directly into the [Maps Engine 
 documentation](https://developers.google.com/maps-engine/).
@@ -35,3 +34,4 @@ created by following the directions on [Register your
 Application](https://developers.google.com/maps-engine/documentation/register). 
 Then, publish the HTML and Javascript files on a web server of your choice. 
 
+![Analytics](https://ga-beacon.appspot.com/UA-12846745-20/mapsengine-samples/javascript/readme?pixel)
