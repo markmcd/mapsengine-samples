@@ -36,7 +36,7 @@ function handleClientLoad() {
     window.alert('Please see the README.md on how to configure this script');
   } else {
     gapi.client.setApiKey(apiKey);
-    listTableFeatures()
+    listTableFeatures();
   }
 }
 
