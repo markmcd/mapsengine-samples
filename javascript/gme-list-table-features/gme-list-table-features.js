@@ -40,7 +40,7 @@ function handleClientLoad() {
   }
 }
 
-var tableId = "18249228033466778353-15118857445398343972";
+var tableId = '18249228033466778353-15118857445398343972';
 
 /**
  * This function lists the features of a published table.
