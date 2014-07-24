@@ -182,7 +182,6 @@ function createVectorTable(projectId) {
     body: {
       projectId: projectId,
       name: tableName,
-      draftAccessList: 'Map Editors',
       schema: tableSchema
     },
     processRequest: function(requestText) {
@@ -378,7 +377,6 @@ function createLayer(projectId, tableId) {
     method: 'POST',
     body: {
       datasourceType: 'table',
-      draftAccessList: 'Map Editors',
       name: 'Capital Cities of Australia Layer',
       projectId: projectId,
       styles: [{
@@ -480,7 +478,6 @@ function createMap(projectId, layerId) {
     path: '/mapsengine/v1/maps',
     method: 'POST',
     body: {
-      draftAccessList: 'Map Editors',
       name: 'Capital Cities of Australia Map',
       projectId: projectId,
       contents: [
