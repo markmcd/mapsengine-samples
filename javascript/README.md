@@ -23,4 +23,15 @@ Then you will need to select a GME API Project for this script to publish
 it's data into. You will then be shown the full HTTP conversation between 
 your browser and the Maps Engine API endpoints.
 
+List Table Features (gme-list-table-features)
+=============================================
+
+This simple sample demonstrates how to retrieve the features of a published 
+table, with the minimum of ceremony. 
+
+To run this sample, first modify the `clientId` and `apiKey` with values 
+created by following the directions on [Register your 
+Application](https://developers.google.com/maps-engine/documentation/register). 
+Then, publish the HTML and Javascript files on a web server of your choice. 
+
 ![Analytics](https://ga-beacon.appspot.com/UA-12846745-20/mapsengine-samples/javascript/readme?pixel)
