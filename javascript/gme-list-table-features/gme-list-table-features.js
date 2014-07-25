@@ -4,16 +4,6 @@
  */
 
 /**
- * Enter a client ID for a web application from the Google Developer Console.
- * In your Developer Console project, add a JavaScript origin that corresponds
- * to the domain where you will be running the script.
- *
- * See https://developers.google.com/maps-engine/documentation/register for
- * more detail.
- */
-var clientId = 'PLEASE INSERT CLIENT ID HERE';
-
-/**
  * Enter the API key from the Google Developer Console - to handle any
  * unauthenticated requests in the code.
  *
@@ -32,7 +22,7 @@ var apiKey = 'PLEASE INSERT API KEY HERE';
  */
 
 function handleClientLoad() {
-  if (clientId === 'PLEASE INSERT CLIENT ID HERE') {
+  if (apiKey === 'PLEASE INSERT API KEY HERE') {
     window.alert('Please see the README.md on how to configure this script');
   } else {
     gapi.client.setApiKey(apiKey);
