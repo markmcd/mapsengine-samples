@@ -11,7 +11,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.mapsengine.MapsEngine;
 import com.google.api.services.mapsengine.MapsEngine.Rasters;
 import com.google.api.services.mapsengine.MapsEngineScopes;
-import com.google.api.services.mapsengine.model.Image;
+import com.google.api.services.mapsengine.model.Raster;
 import com.google.mapsengine.samples.auth.Utils;
 
 import java.io.BufferedInputStream;
@@ -66,7 +66,7 @@ public class UploadRaster {
         .setApplicationName(APPLICATION_NAME)
         .build();
 
-    Image rasterTemplate = prepareImageUpload(projectId, fileNames);
+    Raster rasterTemplate = prepareImageUpload(projectId, fileNames);
 
     // Upload the files.
     for (String fileName : fileNames) {
@@ -78,7 +78,7 @@ public class UploadRaster {
   }
 
   /** Upload an empty asset to the API, containing the metadata. */
-  private Image prepareImageUpload(String projectId, String[] fileNames) throws IOException {
+  private Raster prepareImageUpload(String projectId, String[] fileNames) throws IOException {
     // Build the list of files. Note that the File used here is *not* java.io.File.
     List<com.google.api.services.mapsengine.model.File> pendingFiles =
         new ArrayList<com.google.api.services.mapsengine.model.File>(fileNames.length);
@@ -87,7 +87,7 @@ public class UploadRaster {
     }
 
     // Create an empty raster.
-    Image emptyRaster = new Image()
+    Raster emptyRaster = new Raster()
         .setProjectId(projectId)
         .setName(fileNames[0])  // use the first filename as the target upload name
         .setFiles(pendingFiles)
@@ -99,7 +99,7 @@ public class UploadRaster {
   }
 
   /** Upload a file to the empty image, with a progress indicator. */
-  private void uploadFile(Image emptyImage, String fileName) throws IOException {
+  private void uploadFile(Raster emptyImage, String fileName) throws IOException {
     // This is a java.io.File.
     File file = new File(fileName);
     InputStream fileInputStream = new BufferedInputStream(new FileInputStream(file));
