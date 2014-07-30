@@ -1,6 +1,7 @@
 package com.google.mapsengine.samples;
 
 import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.json.GoogleJsonError.ErrorInfo;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
@@ -63,7 +64,6 @@ public class CsvUpload {
 
   private static final String APPLICATION_NAME = "Google/MapsEngineCsvUpload-1.0";
   private static final Collection<String> SCOPES = Arrays.asList(MapsEngineScopes.MAPSENGINE);
-  private static final String DEFAULT_ACCESS_LIST = "Map Editors";
 
   private static final String LAT_COLUMN_NAME = "lat";
   private static final String LNG_COLUMN_NAME = "lng";
@@ -267,7 +267,6 @@ public class CsvUpload {
     Table newTable = new Table()
         .setName(tableName)
         .setProjectId(projectId)
-        .setDraftAccessList(DEFAULT_ACCESS_LIST)
         .setSchema(schema)
         .setTags(Arrays.asList("CSV Upload", "Samples"));
     return engine.tables().create(newTable).execute();
@@ -296,7 +295,6 @@ public class CsvUpload {
 
     Layer newLayer = new Layer()
         .setDatasourceType("table")
-        .setDraftAccessList(DEFAULT_ACCESS_LIST)
         .setName(table.getName())
         .setProjectId(table.getProjectId())
         .setDatasources(Arrays.asList(new Datasource().setId(table.getId())))
@@ -310,7 +308,22 @@ public class CsvUpload {
   /** Block until the provided layer has been marked as processed. Returns the new layer. */
   private Layer processLayer(Layer layer) throws IOException {
     // Initiate layer processing.
-    engine.layers().process(layer.getId()).execute();
+    try {
+      engine.layers().process(layer.getId()).execute();
+    } catch (GoogleJsonResponseException ex) {
+      // We only continue if there is exactly one error, as >1 error indicates an additional,
+      // unknown problem that we are unable to handle. Zero errors is also unexpected.
+      if (ex.getDetails().getErrors().size() == 1) {
+        ErrorInfo error = ex.getDetails().getErrors().get(0);
+        // If we "fail" because the layer is already processed, then it's safe to continue. In
+        // any other case we want to re-throw the error.
+        if (!"processingUpToDate".equals(error.getReason())) {
+          throw ex;
+        }
+      } else {
+        throw ex;
+      }
+    }
 
     while (!"complete".equals(layer.getProcessingStatus())) {
       // This is safe to run in a while loop as it executes synchronously and we have used a
@@ -335,8 +348,7 @@ public class CsvUpload {
   private Map createMap(Layer layer) throws IOException {
     Map newMap = new Map()
         .setProjectId(layer.getProjectId())
-        .setName(layer.getName())
-        .setDraftAccessList(DEFAULT_ACCESS_LIST);
+        .setName(layer.getName());
 
     List<MapItem> layers = new ArrayList<MapItem>();
 

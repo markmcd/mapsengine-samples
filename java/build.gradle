@@ -6,10 +6,10 @@ version = '1.0'
 // Define the Google API versions to use, allowing the build
 // server to override via environment variables.
 if (!project.hasProperty('googleClientVersion')) {
-    ext.googleClientVersion = '1.18.0-rc'
+    ext.googleClientVersion = '1.19.0'
 }
 if (!project.hasProperty('mapsengineClientVersion')) {
-    ext.mapsengineClientVersion = 'v1-rev16-' + googleClientVersion
+    ext.mapsengineClientVersion = 'v1-rev30-' + googleClientVersion
 }
 
 repositories {
@@ -22,7 +22,7 @@ dependencies {
     compile "com.google.oauth-client:google-oauth-client-servlet:" + project.ext.googleClientVersion
     compile "com.google.apis:google-api-services-mapsengine:" + project.ext.mapsengineClientVersion
     compile "com.google.oauth-client:google-oauth-client-jetty:" + project.ext.googleClientVersion
-    compile 'com.google.maps:mapsengine-api-java-wrapper:0.1'
+    compile 'com.google.maps:mapsengine-api-java-wrapper:0.2'
 
     // Other libraries
     compile 'org.mortbay.jetty:jetty:6.1.+'
