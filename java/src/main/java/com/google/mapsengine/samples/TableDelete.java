@@ -41,7 +41,6 @@ public class TableDelete {
   private static final Logger LOG = Logger.getLogger(TableDelete.class.getName());
 
   private MapsEngine engine;
-  private BackOffWhenRateLimitedRequestInitializer retryHandler;
 
   private final HttpTransport httpTransport = new NetHttpTransport();
   private final JsonFactory jsonFactory = new GsonFactory();
@@ -73,9 +72,8 @@ public class TableDelete {
     Credential credential = Utils.authorizeUser(httpTransport, jsonFactory, SCOPES);
 
     // Set up automatic retry of failed requests.
-    retryHandler = new BackOffWhenRateLimitedRequestInitializer();
-    HttpRequestInitializerPipeline initializers =
-        new HttpRequestInitializerPipeline(credential, retryHandler);
+    HttpRequestInitializerPipeline initializers = new HttpRequestInitializerPipeline(credential,
+        new BackOffWhenRateLimitedRequestInitializer());
 
     engine = new MapsEngine.Builder(httpTransport, jsonFactory, initializers)
         .setApplicationName(APPLICATION_NAME)
@@ -101,6 +99,7 @@ public class TableDelete {
     }
   }
 
+  /** Delete a table, including any layers displaying the table. */
   private void deleteTable(String tableId) throws IOException {
     LOG.info("Finding layers belonging to table.");
     ParentsListResponse tableParents = engine.tables().parents().list(tableId).execute();
@@ -121,6 +120,7 @@ public class TableDelete {
 
   }
 
+  /** Delete the provided layers, including any maps where they are used. */
   private void deleteLayers(Set<String> layerIds) throws IOException {
     for (String layerId : layerIds) {
       assertLayerIsNotPublished(layerId);
