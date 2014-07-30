@@ -69,7 +69,15 @@ public class Utils {
       // If we've run before, then we can just used the stored credentials. The empty string
       Credential credential = flow.loadCredential(DEFAULT_USER_ID);
       if (credential != null) {
-        return credential;
+        // Refresh the token if necessary
+        if (credential.getExpiresInSeconds() <= 0) {
+          // If this refresh fails, we want to continue on with the set-up process.
+          if (credential.refreshToken()) {
+            return credential;
+          }
+        } else {
+          return credential;
+        }
       }
 
       // Open the default web browser to confirm the user's authorization
