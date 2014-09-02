@@ -8,4 +8,4 @@ env:
 before_script: cd java
 notifications:
   email:
-    - one@example.com
+    - mdr-eng@google.com
