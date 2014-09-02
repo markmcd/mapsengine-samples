@@ -199,7 +199,6 @@ public class TableDelete {
   private Set<String> getLayerIdsFromMap(String mapId) throws IOException {
     // Retrieve the map.
     Map map = engine.maps().get(mapId).execute();
-    Map map = engine.maps().get(mapId).execute();
 
     // Find the layers
     Set<String> layerIds = new HashSet<String>();
