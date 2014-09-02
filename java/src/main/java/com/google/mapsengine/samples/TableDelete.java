@@ -167,7 +167,6 @@ public class TableDelete {
     }
   }
 
-  // TODO(macd): Un-publish layer, once the API supports it.
   /** Ensures that a layer is not published. Useful to test before deleting. */
   private void assertLayerIsNotPublished(String layerId) throws IOException {
     boolean publishedVersionExists;
@@ -185,7 +184,6 @@ public class TableDelete {
     }
   }
 
-  // TODO(macd): Un-publish map, once the API supports it.
   /** Ensures that a map is not published. Useful to test before deleting. */
   private void assertMapIsNotPublished(String mapId) throws IOException {
     Map map = engine.maps().get(mapId).execute();
