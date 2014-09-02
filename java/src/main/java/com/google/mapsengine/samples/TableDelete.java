@@ -93,7 +93,7 @@ public class TableDelete {
     return tableId;
   }
 
-  /** Ensure the given ID belongs to a table and that the user can access it. */
+  /** Ensures the given ID belongs to a table and that the user can access it. */
   private boolean validateId(String tableId) throws IOException {
     try {
       Asset asset = engine.assets().get(tableId).execute();
@@ -104,7 +104,7 @@ public class TableDelete {
     }
   }
 
-  /** Delete a table, including any layers displaying the table. */
+  /** Deletes a table, including any layers displaying the table. */
   private void deleteTable(String tableId) throws IOException {
     LOG.info("Finding layers belonging to table.");
     ParentsListResponse tableParents = engine.tables().parents().list(tableId).execute();
@@ -125,13 +125,15 @@ public class TableDelete {
 
   }
 
-  /** Delete the provided layers, including any maps where they are used. */
+  /** Deletes the provided layers, including any maps where they are used. */
   private void deleteLayers(Set<String> layerIds) throws IOException {
     for (String layerId : layerIds) {
       assertLayerIsNotPublished(layerId);
 
       LOG.info("Layer ID: " + layerId + ", finding maps.");
       ParentsListResponse layerParents = engine.layers().parents().list(layerId).execute();
+      // Delete each layer. Note that these operations are not transactional,
+      // so if a later operation fails, the earlier assets will still be deleted.
       for (Parent layerParent : layerParents.getParents()) {
         String mapId = layerParent.getId();
         deleteMap(layerIds, mapId);
@@ -144,7 +146,7 @@ public class TableDelete {
   }
 
   // TODO(macd): Update this to edit the map, once available in the API.
-  /** Safely delete a map, as long as all layers contained are scheduled for deletion. */
+  /** Safely deletes a map, as long as all layers contained are scheduled for deletion. */
   private void deleteMap(Set<String> layerIdsPendingDeletion, String mapId) throws IOException {
     assertMapIsNotPublished(mapId);
 
@@ -166,7 +168,7 @@ public class TableDelete {
   }
 
   // TODO(macd): Un-publish layer, once the API supports it.
-  /** Before we can delete a layer, we need to ensure that it is not published. */
+  /** Ensures that a layer is not published. Useful to test before deleting. */
   private void assertLayerIsNotPublished(String layerId) throws IOException {
     boolean publishedVersionExists;
     try {
@@ -184,7 +186,7 @@ public class TableDelete {
   }
 
   // TODO(macd): Un-publish map, once the API supports it.
-  /** Before we can delete a map, we need to ensure that it is not published. */
+  /** Ensures that a map is not published. Useful to test before deleting. */
   private void assertMapIsNotPublished(String mapId) throws IOException {
     Map map = engine.maps().get(mapId).execute();
     if (map.getVersions().contains("published")) {
@@ -193,9 +195,10 @@ public class TableDelete {
     }
   }
 
-  /** Walk through the contents of the map, finding all layers. */
+  /** Finds all layers attached to a map. */
   private Set<String> getLayerIdsFromMap(String mapId) throws IOException {
     // Retrieve the map.
+    Map map = engine.maps().get(mapId).execute();
     Map map = engine.maps().get(mapId).execute();
 
     // Find the layers
