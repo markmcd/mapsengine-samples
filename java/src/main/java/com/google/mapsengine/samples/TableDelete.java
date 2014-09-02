@@ -55,18 +55,7 @@ public class TableDelete {
   }
 
   private void run(String[] args) throws IOException {
-    String tableId = "";
-    if (args.length != 1) {
-      System.err.println("Usage: java ... TableDelete tableId");
-      System.err.println(" tableId is the ID string of the table to delete.");
-      System.err.println(" WARNING: This will delete without further confirmation!");
-      System.err.println(" WARNING: This will delete the table specified as well as any "
-          + "layers or maps that use it!");
-      System.err.println(" This will not delete maps using other layers.");
-      System.exit(1);
-    } else {
-      tableId = args[0];
-    }
+    String tableId = parseArgs(args);
 
     // Log in
     Credential credential = Utils.authorizeUser(httpTransport, jsonFactory, SCOPES);
@@ -86,6 +75,22 @@ public class TableDelete {
 
     LOG.info("Attempting to delete table ID: " + tableId);
     deleteTable(tableId);
+  }
+
+  private String parseArgs(String[] args) {
+    String tableId = "";
+    if (args.length != 1) {
+      System.err.println("Usage: java ... TableDelete tableId");
+      System.err.println(" tableId is the ID string of the table to delete.");
+      System.err.println(" WARNING: This will delete without further confirmation!");
+      System.err.println(" WARNING: This will delete the table specified as well as any "
+          + "layers or maps that use it!");
+      System.err.println(" This will not delete maps using other layers.");
+      System.exit(1);
+    } else {
+      tableId = args[0];
+    }
+    return tableId;
   }
 
   /** Ensure the given ID belongs to a table and that the user can access it. */
