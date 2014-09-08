@@ -1,17 +1,13 @@
 package com.google.mapsengine.samples;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
-import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
+import com.google.api.client.googleapis.json.GoogleJsonError.ErrorInfo;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.mapsengine.MapsEngine;
 import com.google.api.services.mapsengine.MapsEngineScopes;
 import com.google.api.services.mapsengine.model.Datasource;
@@ -33,15 +29,14 @@ import com.google.api.services.mapsengine.model.ZoomLevels;
 import com.google.maps.clients.BackOffWhenRateLimitedRequestInitializer;
 import com.google.maps.clients.HttpRequestInitializerPipeline;
 import com.google.maps.clients.mapsengine.geojson.Point;
+import com.google.mapsengine.samples.auth.Utils;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-import java.awt.Desktop;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -68,17 +63,7 @@ import java.util.List;
 public class CsvUpload {
 
   private static final String APPLICATION_NAME = "Google/MapsEngineCsvUpload-1.0";
-  private static final String CLIENT_SECRETS_FILE = "res/client_secrets.json";
-  private static final File CREDENTIAL_STORE = new File(System.getProperty("user.home"),
-      ".credentials/mapsengine.json");
   private static final Collection<String> SCOPES = Arrays.asList(MapsEngineScopes.MAPSENGINE);
-  private static final String DEFAULT_ACCESS_LIST = "Map Editors";
-
-  /**
-   * Credentials are stored against a user ID. This app does not manage multiple identities and
-   * will always authorize against the same user, so we use a single, default, user ID.
-   */
-  private static final String DEFAULT_USER_ID = "default";
 
   private static final String LAT_COLUMN_NAME = "lat";
   private static final String LNG_COLUMN_NAME = "lng";
@@ -117,7 +102,7 @@ public class CsvUpload {
     loadCsvData(fileName);
 
     System.out.println("Authorizing. If this takes a while, check your browser.");
-    Credential credential = authorizeUser();
+    Credential credential = Utils.authorizeUser(httpTransport, jsonFactory, SCOPES);
     System.out.println("Authorization successful!");
 
     // Set up the required initializers to 1) authenticate the request and 2) back off if we
@@ -277,78 +262,11 @@ public class CsvUpload {
     return csvSchema;
   }
 
-  /**
-   * Authorise the current user and store the credentials. This requires an interactive session
-   * with a human and access to a web browser (using the "Installed Application" OAuth flow).
-   * For details on how to perform human-free authorization, check the "Server to server" OAuth
-   * flow.
-   */
-  private Credential authorizeUser() throws IOException {
-    File secretsFile = new File(CLIENT_SECRETS_FILE);
-    if (!secretsFile.exists()) {
-      System.err.println("Client secrets file not found. Check out the JavaDoc for CsvUpload for "
-          + "details on how to set up your client secrets.");
-      System.exit(1);
-    }
-
-    // Set up a local server to capture the authorization response from Google.
-    LocalServerReceiver localServer = new LocalServerReceiver();
-
-    try {
-      // Load the client secret details from file.
-      GoogleClientSecrets secrets = GoogleClientSecrets.load(jsonFactory,
-          new FileReader(secretsFile));
-
-      // This credential store will persist tokens between application executions,
-      // so you don't need to keep authorizing.
-      FileDataStoreFactory credentialStore = new FileDataStoreFactory(CREDENTIAL_STORE);
-
-      GoogleAuthorizationCodeFlow flow =
-          new GoogleAuthorizationCodeFlow.Builder(httpTransport, jsonFactory, secrets, SCOPES)
-            .setDataStoreFactory(credentialStore)
-            .build();
-
-      // If we've run before, then we can just used the stored credentials. The empty string
-      Credential credential = flow.loadCredential(DEFAULT_USER_ID);
-      if (credential != null) {
-        return credential;
-      }
-
-      // Open the default web browser to confirm the user's authorization
-      if (!Desktop.isDesktopSupported()) {
-        throw new IllegalStateException("Unable to launch web browser. Desktop support is "
-            + "required for this application.");
-      }
-      // Set our local server URL as the point to return the user to,
-      // so we know when we're complete.
-      String localRedirectUri = localServer.getRedirectUri();
-      URI authUri = flow.newAuthorizationUrl().setRedirectUri(localRedirectUri).toURI();
-      Desktop.getDesktop().browse(authUri);
-
-      // Wait for the authorization code to come back.
-      String code = localServer.waitForCode();
-      // Turn the auth code into a token.
-      GoogleTokenResponse tokenResponse = flow.newTokenRequest(code)
-          .setRedirectUri(localRedirectUri).execute();
-
-      // You may want to use a non-empty user ID here if your app has more than one user.
-      return flow.createAndStoreCredential(tokenResponse, DEFAULT_USER_ID);
-
-    } catch (FileNotFoundException e) {
-      AssertionError newEx = new AssertionError("File not found should already be handled.");
-      newEx.initCause(e);
-      throw newEx;
-    } finally {
-      localServer.stop();
-    }
-  }
-
   /** Creates an empty table in your maps engine account. */
   private Table createTable(String tableName, Schema schema, String projectId) throws IOException {
     Table newTable = new Table()
         .setName(tableName)
         .setProjectId(projectId)
-        .setDraftAccessList(DEFAULT_ACCESS_LIST)
         .setSchema(schema)
         .setTags(Arrays.asList("CSV Upload", "Samples"));
     return engine.tables().create(newTable).execute();
@@ -377,7 +295,6 @@ public class CsvUpload {
 
     Layer newLayer = new Layer()
         .setDatasourceType("table")
-        .setDraftAccessList(DEFAULT_ACCESS_LIST)
         .setName(table.getName())
         .setProjectId(table.getProjectId())
         .setDatasources(Arrays.asList(new Datasource().setId(table.getId())))
@@ -391,7 +308,22 @@ public class CsvUpload {
   /** Block until the provided layer has been marked as processed. Returns the new layer. */
   private Layer processLayer(Layer layer) throws IOException {
     // Initiate layer processing.
-    engine.layers().process(layer.getId()).execute();
+    try {
+      engine.layers().process(layer.getId()).execute();
+    } catch (GoogleJsonResponseException ex) {
+      // We only continue if there is exactly one error, as >1 error indicates an additional,
+      // unknown problem that we are unable to handle. Zero errors is also unexpected.
+      if (ex.getDetails().getErrors().size() == 1) {
+        ErrorInfo error = ex.getDetails().getErrors().get(0);
+        // If we "fail" because the layer is already processed, then it's safe to continue. In
+        // any other case we want to re-throw the error.
+        if (!"processingUpToDate".equals(error.getReason())) {
+          throw ex;
+        }
+      } else {
+        throw ex;
+      }
+    }
 
     while (!"complete".equals(layer.getProcessingStatus())) {
       // This is safe to run in a while loop as it executes synchronously and we have used a
@@ -416,8 +348,7 @@ public class CsvUpload {
   private Map createMap(Layer layer) throws IOException {
     Map newMap = new Map()
         .setProjectId(layer.getProjectId())
-        .setName(layer.getName())
-        .setDraftAccessList(DEFAULT_ACCESS_LIST);
+        .setName(layer.getName());
 
     List<MapItem> layers = new ArrayList<MapItem>();
 
