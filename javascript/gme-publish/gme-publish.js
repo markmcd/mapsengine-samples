@@ -319,7 +319,7 @@ var cities = [
 function insertTableFeatures(projectId, tableId) {
 
   mapsengine.tables.features.batchInsert({
-    id:tableId,
+    id: tableId,
     resource: {
       features: cities
     }

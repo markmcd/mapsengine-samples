@@ -33,7 +33,7 @@ function Mapsengine(options) {
 
   // The following has been ported from the Google APIs client for Node.JS
   // to work in a browser, while still presenting mostly the same API.
-  // The major change is that GAPI.js handles OAuth at page leve implicitly,
+  // The major change is that GAPI.js handles OAuth at page level implicitly,
   // and thus this API doesn't need (or accept) the auth parameter.
 
   var self = this;
