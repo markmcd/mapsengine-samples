@@ -18,6 +18,8 @@
 
 'use strict';
 
+// This file was generated from a modified Google APIs client for Node.js:
+// https://github.com/domesticmouse/google-api-nodejs-client
 
 /**
  * Google Maps Engine API
@@ -30,11 +32,6 @@
  * @param {object=} options Options for Mapsengine
  */
 function Mapsengine(options) {
-
-  // The following has been ported from the Google APIs client for Node.JS
-  // to work in a browser, while still presenting mostly the same API.
-  // The major change is that GAPI.js handles OAuth at page level implicitly,
-  // and thus this API doesn't need (or accept) the auth parameter.
 
   var self = this;
   this._options = options || {};
@@ -49,14 +46,13 @@ function Mapsengine(options) {
     var dummy = function() {};
     var properties = 'memory'.split(',');
     var methods = ('assert,clear,count,debug,dir,dirxml,error,exception,' +
-        'group,groupCollapsed,groupEnd,info,log,markTimeline,profile,' +
-        'profiles,profileEnd,show,table,time,timeEnd,timeline,timelineEnd,' +
-        'timeStamp,trace,warn').split(',');
+      'group,groupCollapsed,groupEnd,info,log,markTimeline,profile,' +
+      'profiles,profileEnd,show,table,time,timeEnd,timeline,timelineEnd,' +
+      'timeStamp,trace,warn').split(',');
     while (prop = properties.pop()) con[prop] = con[prop] || empty;
     while (method = methods.pop()) con[method] = con[method] || dummy;
   })(this.console = this.console || {}); // Using `this` for web workers.
 
-  // From https://github.com/google/google-api-nodejs-client/blob/master/lib/apirequest.js
   function isValidParams(params, keys, callback) {
     for (var i = 0, len = keys.length; i < len; i++) {
       if (!params[keys[i]]) {
@@ -77,7 +73,6 @@ function Mapsengine(options) {
     return typeof callback === 'function' ? callback : logErrorOnly;
   }
 
-  // From https://github.com/google/google-api-nodejs-client/blob/master/lib/utils.js
   function extend(obj) {
     var source, prop;
     for (var i = 1, length = arguments.length; i < length; i++) {
@@ -89,7 +84,6 @@ function Mapsengine(options) {
     return obj;
   }
 
-  // The following function has been re-written to use GAPI.js as the back end.
   function createAPIRequest(parameters, callback) {
 
     var params = parameters.params;
@@ -148,8 +142,8 @@ function Mapsengine(options) {
         callback(null, response.result || {}, response);
       }, function(failureResponse) {
         if (failureResponse.status == 503 ||
-            (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
-                failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded')) {
+          (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
+            failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded')) {
           if (++retryAttempt > 10) {
             callback(failureResponse);
             return;
@@ -168,11 +162,6 @@ function Mapsengine(options) {
     })();
 
   }
-
-  // From here on down is taken mostly verbatim from the API generated
-  // code in the Google APIs client for Node.JS. The only change is that
-  // the initial hostname has been taken out of the URLs, as GAPI.js
-  // has the API host configured at initialization time.
 
   this.assets = {
 
