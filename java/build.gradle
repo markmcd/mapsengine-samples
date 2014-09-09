@@ -9,7 +9,8 @@ if (!project.hasProperty('googleClientVersion')) {
     ext.googleClientVersion = '1.19.0'
 }
 if (!project.hasProperty('mapsengineClientVersion')) {
-    ext.mapsengineClientVersion = 'v1-rev30-' + googleClientVersion
+    // TODO(macd): update this to the revision that has permissions & styling functions
+    ext.mapsengineClientVersion = 'v1-rev38-' + googleClientVersion
 }
 
 repositories {
