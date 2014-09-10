@@ -8,8 +8,7 @@ if (!project.hasProperty('googleClientVersion')) {
     ext.googleClientVersion = '1.19.0'
 }
 if (!project.hasProperty('mapsengineClientVersion')) {
-    // TODO(macd): update this to the revision that has permissions & styling functions
-    ext.mapsengineClientVersion = 'v1-rev38-' + googleClientVersion
+    ext.mapsengineClientVersion = 'exp2-rev10-' + googleClientVersion
 }
 
 repositories {
@@ -22,7 +21,10 @@ dependencies {
     compile "com.google.oauth-client:google-oauth-client-servlet:" + project.ext.googleClientVersion
     compile "com.google.apis:google-api-services-mapsengine:" + project.ext.mapsengineClientVersion
     compile "com.google.oauth-client:google-oauth-client-jetty:" + project.ext.googleClientVersion
-    compile 'com.google.maps:mapsengine-api-java-wrapper:0.2'
+    // TODO(macd): remove before merging when exp2 => v1
+    compile('com.google.maps:mapsengine-api-java-wrapper:0.2') {
+        exclude module: 'google-api-services-mapsengine'
+    }
 
     // Other libraries
     compile 'org.mortbay.jetty:jetty:6.1.+'

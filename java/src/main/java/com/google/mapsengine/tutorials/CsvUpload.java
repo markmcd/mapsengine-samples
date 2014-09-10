@@ -1,7 +1,6 @@
 package com.google.mapsengine.tutorials;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.InputStreamContent;
@@ -21,8 +20,8 @@ import com.google.api.services.mapsengine.model.Map;
 import com.google.api.services.mapsengine.model.MapItem;
 import com.google.api.services.mapsengine.model.MapLayer;
 import com.google.api.services.mapsengine.model.Permission;
-import com.google.api.services.mapsengine.model.PermissionsBatchInsertRequest;
-import com.google.api.services.mapsengine.model.PermissionsBatchInsertResponse;
+import com.google.api.services.mapsengine.model.PermissionsBatchUpdateRequest;
+import com.google.api.services.mapsengine.model.PermissionsBatchUpdateResponse;
 import com.google.api.services.mapsengine.model.PointStyle;
 import com.google.api.services.mapsengine.model.PublishResponse;
 import com.google.api.services.mapsengine.model.ScaledShape;
@@ -247,24 +246,24 @@ public class CsvUpload {
 
   /** Marks the provided map as "published", making it visible. */
   private PublishResponse publishMap(Map map) throws IOException {
-    while (true) {
-      try {
-        // Initially the map will be in a 'processing' state and will return '400 Bad Request'
-        // while processing is happening. Keep trying until it works.
-        return engine.maps().publish(map.getId()).execute();
-      } catch (GoogleJsonResponseException ex) {
-        // Silently ignore the expected error.
-      }
+    String processingStatus = null;
+
+    // Initially the map will be in a 'processing' state and will return '409 Conflict'
+    // while processing is happening. Poll until it's ready.
+    while (!"complete".equals(processingStatus)) {
+      processingStatus = engine.maps().get(map.getId()).execute().getProcessingStatus();
     }
+
+    return engine.maps().publish(map.getId()).execute();
   }
 
   /** Makes the map publicly visible. */
-  private PermissionsBatchInsertResponse setPermissions(Map map) throws IOException {
-    PermissionsBatchInsertRequest request = new PermissionsBatchInsertRequest()
+  private PermissionsBatchUpdateResponse setPermissions(Map map) throws IOException {
+    PermissionsBatchUpdateRequest request = new PermissionsBatchUpdateRequest()
         .setPermissions(Arrays.asList(new Permission()
             .setId("anyone")
             .setRole("viewer")));
 
-    return engine.maps().permissions().batchInsert(map.getId(), request).execute();
+    return engine.maps().permissions().batchUpdate(map.getId(), request).execute();
   }
 }
