@@ -18,6 +18,7 @@
 
 'use strict';
 
+var MAX_RETRIES = 10;
 
 /**
  * Google Maps Engine API
@@ -31,32 +32,9 @@
  */
 function Mapsengine(options) {
 
-  // The following has been ported from the Google APIs client for Node.JS
-  // to work in a browser, while still presenting mostly the same API.
-  // The major change is that GAPI.js handles OAuth at page level implicitly,
-  // and thus this API doesn't need (or accept) the auth parameter.
-
   var self = this;
   this._options = options || {};
 
-  // Console-polyfill. MIT license.
-  // https://github.com/paulmillr/console-polyfill
-  // Make it safe to do console.log() always.
-  (function(con) {
-    'use strict';
-    var prop, method;
-    var empty = {};
-    var dummy = function() {};
-    var properties = 'memory'.split(',');
-    var methods = ('assert,clear,count,debug,dir,dirxml,error,exception,' +
-        'group,groupCollapsed,groupEnd,info,log,markTimeline,profile,' +
-        'profiles,profileEnd,show,table,time,timeEnd,timeline,timelineEnd,' +
-        'timeStamp,trace,warn').split(',');
-    while (prop = properties.pop()) con[prop] = con[prop] || empty;
-    while (method = methods.pop()) con[method] = con[method] || dummy;
-  })(this.console = this.console || {}); // Using `this` for web workers.
-
-  // From https://github.com/google/google-api-nodejs-client/blob/master/lib/apirequest.js
   function isValidParams(params, keys, callback) {
     for (var i = 0, len = keys.length; i < len; i++) {
       if (!params[keys[i]]) {
@@ -68,16 +46,11 @@ function Mapsengine(options) {
   }
 
   function logErrorOnly(err) {
-    if (err) {
+    if (err && console && console.error) {
       console.error(err);
     }
   }
 
-  function createCallback(callback) {
-    return typeof callback === 'function' ? callback : logErrorOnly;
-  }
-
-  // From https://github.com/google/google-api-nodejs-client/blob/master/lib/utils.js
   function extend(obj) {
     var source, prop;
     for (var i = 1, length = arguments.length; i < length; i++) {
@@ -89,7 +62,6 @@ function Mapsengine(options) {
     return obj;
   }
 
-  // The following function has been re-written to use GAPI.js as the back end.
   function createAPIRequest(parameters, callback) {
 
     var params = parameters.params;
@@ -109,7 +81,7 @@ function Mapsengine(options) {
     }
 
     // Redefining callback var
-    callback = createCallback(callback);
+    callback = callback || logErrorOnly;
 
     if (!isValidParams(params, requiredParams, callback)) {
       return null;
@@ -147,32 +119,25 @@ function Mapsengine(options) {
       }).then(function(response) {
         callback(null, response.result || {}, response);
       }, function(failureResponse) {
-        if (failureResponse.status == 503 ||
-            (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
-                failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded')) {
-          if (++retryAttempt > 10) {
-            callback(failureResponse);
-            return;
-          }
-
-          // Exponential back off, with jitter, ramping up to 20 seconds
-          // between retries.
-          var backoffSeconds = Math.random() * Math.min(Math.pow(2, retryAttempt), 20);
-          window.setTimeout(doRequestWithBackoff, backoffSeconds * 1000);
-
+        if (!(failureResponse.status == 503 ||
+            failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
+            failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded') ||
+          ++retryAttempt > MAX_RETRIES) {
+          // Don't retry
+          callback(failureResponse);
           return;
         }
 
-        callback(failureResponse);
+        // Exponential back off, with jitter, ramping up to 20 seconds
+        // between retries.
+        var backoffSeconds = Math.random() * Math.min(Math.pow(2, retryAttempt), 20);
+        window.setTimeout(doRequestWithBackoff, backoffSeconds * 1000);
+
+        return;
       });
     })();
 
   }
-
-  // From here on down is taken mostly verbatim from the API generated
-  // code in the Google APIs client for Node.JS. The only change is that
-  // the initial hostname has been taken out of the URLs, as GAPI.js
-  // has the API host configured at initialization time.
 
   this.assets = {
 
@@ -391,6 +356,34 @@ function Mapsengine(options) {
     },
 
     /**
+     * mapsengine.layers.getPublished
+     *
+     * @desc Return the published metadata for a particular layer.
+     *
+     * @alias mapsengine.layers.getPublished
+     * @memberOf! mapsengine(v1)
+     *
+     * @param  {object} params - Parameters for request
+     * @param  {string} params.id - The ID of the layer.
+     * @param  {callback} callback - The callback that handles the response.
+     * @return {object} Request object
+     */
+    getPublished: function(params, callback) {
+      var parameters = {
+        options: {
+          url: '/mapsengine/v1/layers/' + params.id + '/published',
+          method: 'GET'
+        },
+        params: params,
+        requiredParams: ['id'],
+        pathParams: ['id'],
+        context: self
+      };
+
+      return createAPIRequest(parameters, callback);
+    },
+
+    /**
      * mapsengine.layers.list
      *
      * @desc Return all layers readable by the current user.
@@ -419,6 +412,34 @@ function Mapsengine(options) {
       var parameters = {
         options: {
           url: '/mapsengine/v1/layers',
+          method: 'GET'
+        },
+        params: params,
+        context: self
+      };
+
+      return createAPIRequest(parameters, callback);
+    },
+
+    /**
+     * mapsengine.layers.listPublished
+     *
+     * @desc Return all published layers readable by the current user.
+     *
+     * @alias mapsengine.layers.listPublished
+     * @memberOf! mapsengine(v1)
+     *
+     * @param  {object=} params - Parameters for request
+     * @param  {integer=} params.maxResults - The maximum number of items to include in a single response page. The maximum supported value is 100.
+     * @param  {string=} params.pageToken - The continuation token, used to page through large result sets. To get the next page of results, set this parameter to the value of nextPageToken from the previous response.
+     * @param  {string=} params.projectId - The ID of a Maps Engine project, used to filter the response. To list all available projects with their IDs, send a Projects: list request. You can also find your project ID as the value of the DashboardPlace:cid URL parameter when signed in to mapsengine.google.com.
+     * @param  {callback} callback - The callback that handles the response.
+     * @return {object} Request object
+     */
+    listPublished: function(params, callback) {
+      var parameters = {
+        options: {
+          url: '/mapsengine/v1/layers/published',
           method: 'GET'
         },
         params: params,
@@ -662,6 +683,34 @@ function Mapsengine(options) {
     },
 
     /**
+     * mapsengine.maps.getPublished
+     *
+     * @desc Return the published metadata for a particular map.
+     *
+     * @alias mapsengine.maps.getPublished
+     * @memberOf! mapsengine(v1)
+     *
+     * @param  {object} params - Parameters for request
+     * @param  {string} params.id - The ID of the map.
+     * @param  {callback} callback - The callback that handles the response.
+     * @return {object} Request object
+     */
+    getPublished: function(params, callback) {
+      var parameters = {
+        options: {
+          url: '/mapsengine/v1/maps/' + params.id + '/published',
+          method: 'GET'
+        },
+        params: params,
+        requiredParams: ['id'],
+        pathParams: ['id'],
+        context: self
+      };
+
+      return createAPIRequest(parameters, callback);
+    },
+
+    /**
      * mapsengine.maps.list
      *
      * @desc Return all maps readable by the current user.
@@ -690,6 +739,34 @@ function Mapsengine(options) {
       var parameters = {
         options: {
           url: '/mapsengine/v1/maps',
+          method: 'GET'
+        },
+        params: params,
+        context: self
+      };
+
+      return createAPIRequest(parameters, callback);
+    },
+
+    /**
+     * mapsengine.maps.listPublished
+     *
+     * @desc Return all published maps readable by the current user.
+     *
+     * @alias mapsengine.maps.listPublished
+     * @memberOf! mapsengine(v1)
+     *
+     * @param  {object=} params - Parameters for request
+     * @param  {integer=} params.maxResults - The maximum number of items to include in a single response page. The maximum supported value is 100.
+     * @param  {string=} params.pageToken - The continuation token, used to page through large result sets. To get the next page of results, set this parameter to the value of nextPageToken from the previous response.
+     * @param  {string=} params.projectId - The ID of a Maps Engine project, used to filter the response. To list all available projects with their IDs, send a Projects: list request. You can also find your project ID as the value of the DashboardPlace:cid URL parameter when signed in to mapsengine.google.com.
+     * @param  {callback} callback - The callback that handles the response.
+     * @return {object} Request object
+     */
+    listPublished: function(params, callback) {
+      var parameters = {
+        options: {
+          url: '/mapsengine/v1/maps/published',
           method: 'GET'
         },
         params: params,
@@ -852,7 +929,7 @@ function Mapsengine(options) {
       /**
        * mapsengine.projects.icons.get
        *
-       * @desc Return metadata for a specific icon
+       * @desc Return an icon or its associated metadata
        *
        * @alias mapsengine.projects.icons.get
        * @memberOf! mapsengine(v1)
