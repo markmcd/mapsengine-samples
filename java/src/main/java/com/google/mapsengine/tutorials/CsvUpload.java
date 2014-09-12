@@ -26,6 +26,7 @@ import com.google.api.services.mapsengine.model.PointStyle;
 import com.google.api.services.mapsengine.model.PublishResponse;
 import com.google.api.services.mapsengine.model.ScaledShape;
 import com.google.api.services.mapsengine.model.ScalingFunction;
+import com.google.api.services.mapsengine.model.Schema;
 import com.google.api.services.mapsengine.model.SizeRange;
 import com.google.api.services.mapsengine.model.Table;
 import com.google.api.services.mapsengine.model.ValueRange;
@@ -74,6 +75,7 @@ public class CsvUpload {
           + "more information on VRT files in Maps Engine.");
       System.exit(1);
     }
+
     try {
       new CsvUpload().run(args[0], args[1], args[2]);
     } catch (Exception ex) {
@@ -140,9 +142,11 @@ public class CsvUpload {
       files.add(new com.google.api.services.mapsengine.model.File().setFilename(fileName));
     }
 
+    // Build the table, including the minimal schema that defines 'COUNTRY' as the primary key
     Table newTable = new Table()
         .setName("Population change")
         .setDescription("World population change")
+        .setSchema(new Schema().setPrimaryKey("COUNTRY"))
         .setProjectId(projectId)
         .setFiles(files)
         .setTags(Arrays.asList("population growth", "population change"));
