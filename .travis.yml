@@ -5,6 +5,7 @@ jdk:
   - openjdk6
 env:
   - ORG_GRADLE_PROJECT_googleClientVersion="+" ORG_GRADLE_PROJECT_mapsengineClientVersion="+"
+  -
 before_script: cd java
 notifications:
   email:
