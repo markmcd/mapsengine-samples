@@ -165,19 +165,13 @@ public class Utils {
       credential.refreshToken();
       return credential;
     } catch (FileNotFoundException e) {
-      AssertionError newEx = new AssertionError("File not found should already be handled.");
-      newEx.initCause(e);
-      throw newEx;
+      throw new AssertionError("File not found should already be handled.", e);
     } catch (NoSuchAlgorithmException e) {
-      AssertionError newEx = new AssertionError("Encountered an unexpected algorithm when "
-          + "processing the supplied private key.");
-      newEx.initCause(e);
-      throw newEx;
+      throw new AssertionError("Encountered an unexpected algorithm when "
+          + "processing the supplied private key.", e);
     } catch (InvalidKeySpecException e) {
-      AssertionError newEx = new AssertionError("Encountered an invalid key specification when "
-          + "processing the supplied private key.");
-      newEx.initCause(e);
-      throw newEx;
+      throw new AssertionError("Encountered an invalid key specification when "
+          + "processing the supplied private key.", e);
     }
   }
 

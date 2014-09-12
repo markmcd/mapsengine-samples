@@ -64,17 +64,6 @@ public class CsvUpload {
   private final JsonFactory jsonFactory = new GsonFactory();
 
   public static void main(String[] args) {
-    try {
-      new CsvUpload().run(args);
-    } catch (Exception ex) {
-      System.err.println("An unexpected error occurred!");
-      ex.printStackTrace(System.err);
-      System.exit(1);
-    }
-  }
-
-  public void run(String[] args) throws Exception {
-
     if (args.length < 3) {
       System.err.println("Usage: java ...CsvUpload projectId myfile.csv myfile.vrt");
       System.err.println(" projectId is the numerical ID of the project in which to create the "
@@ -85,10 +74,16 @@ public class CsvUpload {
           + "more information on VRT files in Maps Engine.");
       System.exit(1);
     }
-    String projectId = args[0];
-    String csvFileName = args[1];
-    String vrtFileName = args[2];
+    try {
+      new CsvUpload().run(args[0], args[1], args[2]);
+    } catch (Exception ex) {
+      System.err.println("An unexpected error occurred!");
+      ex.printStackTrace(System.err);
+      System.exit(1);
+    }
+  }
 
+  public void run(String projectId, String csvFileName, String vrtFileName) throws Exception {
     System.out.println("Authorizing.");
     Credential credential = Utils.authorizeService(httpTransport, jsonFactory, SCOPES);
     System.out.println("Authorization successful!");
@@ -170,6 +165,8 @@ public class CsvUpload {
   private Layer createLayer(Table table) throws IOException {
     ZoomLevels allZoomLevels = new ZoomLevels().setMin(0).setMax(24);
 
+    // Define a rule to capture growth >0 and style it as a scaled blue circle relative to the
+    // magnitude of the population growth
     DisplayRule positiveGrowth = new DisplayRule()
         .setZoomLevels(allZoomLevels)
         .setPointOptions(new PointStyle()
@@ -187,6 +184,8 @@ public class CsvUpload {
                 .setOperator(">")
                 .setValue(0)));
 
+    // Define a rule to capture growth <0 and style it as a scaled red circle relative to the
+    // absolute magnitude of the population growth
     DisplayRule negativeGrowth = new DisplayRule()
         .setZoomLevels(allZoomLevels)
         .setPointOptions(new PointStyle()
@@ -208,6 +207,7 @@ public class CsvUpload {
         .setType("displayRule")
         .setDisplayRules(Arrays.asList(positiveGrowth, negativeGrowth));
 
+    // Build a new layer using the styles defined above and render using the supplied table.
     Layer newLayer = new Layer()
         .setLayerType("vector")
         .setName("Population Growth 2010")
