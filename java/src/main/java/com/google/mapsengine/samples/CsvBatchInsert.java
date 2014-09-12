@@ -60,9 +60,9 @@ import java.util.List;
  *    - If the value can be parsed as an integer, the column becomes an integer type
  *    - Otherwise the column is a string
  */
-public class CsvUpload {
+public class CsvBatchInsert {
 
-  private static final String APPLICATION_NAME = "Google/MapsEngineCsvUpload-1.0";
+  private static final String APPLICATION_NAME = "Google/MapsEngineBatchInsert-1.0";
   private static final Collection<String> SCOPES = Arrays.asList(MapsEngineScopes.MAPSENGINE);
 
   private static final String LAT_COLUMN_NAME = "lat";
@@ -78,7 +78,7 @@ public class CsvUpload {
 
   public static void main(String[] args) {
     try {
-      new CsvUpload().run(args);
+      new CsvBatchInsert().run(args);
     } catch (Exception ex) {
       System.err.println("An unexpected error occurred!");
       ex.printStackTrace(System.err);
@@ -89,7 +89,7 @@ public class CsvUpload {
   public void run(String[] args) throws IOException {
 
     if (args.length < 2) {
-      System.err.println("Usage: java ... CsvUpload myfile.csv projectId");
+      System.err.println("Usage: java ... CsvBatchInsert myfile.csv projectId");
       System.err.println(" myfile.csv is the path to the CSV file to upload");
       System.err.println(" projectId is the numerical ID of the project in which to create the "
           + "new table");
