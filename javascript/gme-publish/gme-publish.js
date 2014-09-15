@@ -46,7 +46,7 @@ var scopes = ['https://www.googleapis.com/auth/mapsengine'];
 /**
  * Instance of Mapsengine V1. This encapsulates the Google Maps Engine API end point.
  */
-var mapsengine = new Mapsengine();
+var mapsengine = new MapsEngine();
 
 /**
  * This function is called when Google JavaScript client library (gapi.js)
@@ -112,14 +112,14 @@ function handleAuthClick(event) {
 }
 
 /**
- * This function loads the Google Mapsengine v1 API discovery document, such
- * that we can use the API directly. Upon successfully loading the Mapsengine
+ * This function loads the Google MapsEngine v1 API discovery document, such
+ * that we can use the API directly. Upon successfully loading the MapsEngine
  * API discovery document, we list the projects that the user has. To conform
- * with Mapsengine 1qps limit, we sleep for a second before starting the next
+ * with MapsEngine 1qps limit, we sleep for a second before starting the next
  * step.
  */
 function listProjects() {
-  mapsengine.projects.list(function(err, response){
+  mapsengine.projects.list(function(err, response) {
     if (err) {
       $('#list-projects-response').text('Error response:\n\n' +
           JSON.stringify(err, null, 2));
@@ -138,7 +138,7 @@ function listProjects() {
       });
       goButton.removeAttr('disabled');
     } else {
-      window.alert('Sorry, you appear to have no Mapsengine Projects');
+      window.alert('Sorry, you appear to have no Maps Engine Projects');
     }
 
     $('#list-projects-response').text(JSON.stringify(response, null, 2));
@@ -151,7 +151,7 @@ function listProjects() {
 var tableName = 'Cities of Australia';
 
 /**
- * This is the structure of our vector table of mapsengine data.
+ * This is the structure of our vector table of MapsEngine data.
  */
 var tableSchema = {
   columns: [
@@ -182,7 +182,7 @@ function createVectorTable(projectId) {
       name: tableName,
       schema: tableSchema
     }
-  }, function(err, response){
+  }, function(err, response) {
     if (err) {
       $('#create-table-response').text('Error response:\n\n' +
           JSON.stringify(err, null, 2));
@@ -323,7 +323,7 @@ function insertTableFeatures(projectId, tableId) {
     resource: {
       features: cities
     }
-  }, function (err, response){
+  }, function (err, response) {
     if (err) {
       $('#insert-table-features-response').text('Error response:\n\n' +
           JSON.stringify(err, null, 2));
@@ -411,15 +411,10 @@ function pollLayerStatus(projectId, layerId) {
           JSON.stringify(err, null, 2));
       return;
     }
-    if (response.processingStatus == 'complete') {
+    if (response.processingStatus == 'complete' || 
+        response.processingStatus == 'processing') {
       window.setTimeout(publishLayer, 1000, projectId, layerId);
-    } else if (response.processingStatus == 'processing') {
-      // Still processing, loop around until the layer processing status
-      // is either 'complete' or 'failed'
-      window.setTimeout(function() {
-        pollLayerStatus(projectId, layerId);
-      }, 1000);
-    }
+    } 
     $('#poll-layer-response').text(JSON.stringify(response, null, 2));
   });
 }
@@ -455,7 +450,7 @@ function createMap(projectId, layerId) {
         id: layerId
       }
     ]
-  }}, function(err, response){
+  }}, function(err, response) {
     if (err) {
       $('#create-map-response').text('Error response:\n\n' +
           JSON.stringify(err, null, 2));

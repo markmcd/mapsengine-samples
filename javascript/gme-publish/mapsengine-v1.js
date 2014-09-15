@@ -27,10 +27,10 @@ var MAX_RETRIES = 10;
  * @namespace mapsengine
  * @version  v1
  * @variation v1
- * @this Mapsengine
- * @param {object=} options Options for Mapsengine
+ * @this MapsEngine
+ * @param {object=} options Options for MapsEngine
  */
-function Mapsengine(options) {
+function MapsEngine(options) {
 
   var self = this;
   this._options = options || {};
