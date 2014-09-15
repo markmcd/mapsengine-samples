@@ -255,6 +255,8 @@ public class CsvUpload {
     // Initially the map will be in a 'processing' state and will return '409 Conflict'
     // while processing is happening. Poll until it's ready.
     while (!"complete".equals(processingStatus)) {
+      // Note that if you are using the Maps Engine API Wrapper there is no need to sleep between
+      // requests, as it will automatically retry any 'rate limit exceeded' errors.
       processingStatus = engine.maps().get(map.getId()).execute().getProcessingStatus();
     }
 
