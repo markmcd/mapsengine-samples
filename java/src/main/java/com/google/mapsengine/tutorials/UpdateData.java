@@ -121,6 +121,7 @@ public class UpdateData {
     System.out.println("Done.");
 
     System.out.println("Deleting a feature.");
+    // See the tutorial for discussion on why we are deleting China's data.
     deleteFeature(table, "CHN");
     System.out.println("Done.");
   }
