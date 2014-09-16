@@ -77,17 +77,6 @@ public class CsvBatchInsert {
   private final JsonFactory jsonFactory = new GsonFactory();
 
   public static void main(String[] args) {
-    try {
-      new CsvBatchInsert().run(args);
-    } catch (Exception ex) {
-      System.err.println("An unexpected error occurred!");
-      ex.printStackTrace(System.err);
-      System.exit(1);
-    }
-  }
-
-  public void run(String[] args) throws IOException {
-
     if (args.length < 2) {
       System.err.println("Usage: java ... CsvBatchInsert myfile.csv projectId");
       System.err.println(" myfile.csv is the path to the CSV file to upload");
@@ -95,9 +84,17 @@ public class CsvBatchInsert {
           + "new table");
       System.exit(1);
     }
-    String fileName = args[0];
-    String projectId = args[1];
 
+    try {
+      new CsvBatchInsert().run(args[0], args[1]);
+    } catch (Exception ex) {
+      System.err.println("An unexpected error occurred!");
+      ex.printStackTrace(System.err);
+      System.exit(1);
+    }
+  }
+
+  public void run(String fileName, String projectId) throws IOException {
     System.out.println("Loading CSV data from " + fileName);
     loadCsvData(fileName);
 
@@ -294,7 +291,7 @@ public class CsvBatchInsert {
         ));
 
     Layer newLayer = new Layer()
-        .setDatasourceType("table")
+        .setLayerType("vector")
         .setName(table.getName())
         .setProjectId(table.getProjectId())
         .setDatasources(Arrays.asList(new Datasource().setId(table.getId())))
