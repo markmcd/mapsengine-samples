@@ -44,6 +44,11 @@ var apiKey = 'PLEASE INSERT KEY HERE';
 var scopes = ['https://www.googleapis.com/auth/mapsengine'];
 
 /**
+ * Instance of Mapsengine V1. This encapsulates the Google Maps Engine API end point.
+ */
+var mapsengine = new MapsEngine();
+
+/**
  * This function is called when Google JavaScript client library (gapi.js)
  * loads. This function configures gapi.js with the API Key configured above,
  * and sets up checking for authorization after the page has fully loaded.
@@ -67,7 +72,8 @@ function handleClientLoad() {
  * for the Google Maps Engine Read/Write scope.
  */
 function checkAuth() {
-  gapi.auth.authorize({ client_id: clientId, scope: scopes, immediate: true }, handleAuthResult);
+  gapi.auth.authorize({ client_id: clientId, scope: scopes, immediate: true },
+      handleAuthResult);
 }
 
 /**
@@ -106,42 +112,36 @@ function handleAuthClick(event) {
 }
 
 /**
- * This function loads the Google Mapsengine v1 API discovery document, such
- * that we can use the API directly. Upon successfully loading the Mapsengine
+ * This function loads the Google MapsEngine v1 API discovery document, such
+ * that we can use the API directly. Upon successfully loading the MapsEngine
  * API discovery document, we list the projects that the user has. To conform
- * with Mapsengine 1qps limit, we sleep for a second before starting the next
+ * with MapsEngine 1qps limit, we sleep for a second before starting the next
  * step.
  */
 function listProjects() {
-  doRequest({
-    path: '/mapsengine/v1/projects',
-    method: 'GET',
-    processRequest: function(requestText) {
-      $('#list-projects-request').text(requestText);
-    },
-    processResponse: function(response) {
-      if (response.result.projects.length > 0) {
-        var select = $('<select id="project-selector">');
-        response.result.projects.forEach(function(project, index, projects) {
-          select.append($('<option/>').val(project.id).text(project.name));
-        });
-
-        $('#project-name').empty().append(select);
-        var goButton = $('#go-button');
-        goButton.click(function() {
-          createVectorTable($('#project-selector').val());
-        });
-        goButton.removeAttr('disabled');
-      } else {
-        window.alert('Sorry, you appear to have no Mapsengine Projects');
-      }
-
-      $('#list-projects-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+  mapsengine.projects.list(function(err, response) {
+    if (err) {
       $('#list-projects-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
+          JSON.stringify(err, null, 2));
+      return;
     }
+    if (response.projects.length > 0) {
+      var select = $('<select id="project-selector">');
+      response.projects.forEach(function(project, index, projects) {
+        select.append($('<option/>').val(project.id).text(project.name));
+      });
+
+      $('#project-name').empty().append(select);
+      var goButton = $('#go-button');
+      goButton.click(function() {
+        createVectorTable($('#project-selector').val());
+      });
+      goButton.removeAttr('disabled');
+    } else {
+      window.alert('Sorry, you appear to have no Maps Engine Projects');
+    }
+
+    $('#list-projects-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -151,7 +151,7 @@ function listProjects() {
 var tableName = 'Cities of Australia';
 
 /**
- * This is the structure of our vector table of mapsengine data.
+ * This is the structure of our vector table of MapsEngine data.
  */
 var tableSchema = {
   columns: [
@@ -176,27 +176,22 @@ var tableSchema = {
  * @param projectId Project ID of the GME API Project to create table in.
  */
 function createVectorTable(projectId) {
-  doRequest({
-    path: '/mapsengine/v1/tables',
-    method: 'POST',
-    body: {
+  mapsengine.tables.create({
+    resource: {
       projectId: projectId,
       name: tableName,
       schema: tableSchema
-    },
-    processRequest: function(requestText) {
-      $('#create-table-request').text(requestText);
-    },
-    processResponse: function(response) {
-      window.setTimeout(function() {
-        insertTableFeatures(projectId, response.result.id);
-      }, 1000);
-      $('#create-table-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
-      $('#create-table-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
     }
+  }, function(err, response) {
+    if (err) {
+      $('#create-table-response').text('Error response:\n\n' +
+          JSON.stringify(err, null, 2));
+      return;
+    }
+    window.setTimeout(function() {
+      insertTableFeatures(projectId, response.id);
+    }, 1000);
+    $('#create-table-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -322,25 +317,22 @@ var cities = [
  * Insert data into a Vector Table, batch style.
  */
 function insertTableFeatures(projectId, tableId) {
-  doRequest({
-    path: '/mapsengine/v1/tables/' + tableId + '/features/batchInsert',
-    method: 'POST',
-    body: {
+
+  mapsengine.tables.features.batchInsert({
+    id: tableId,
+    resource: {
       features: cities
-    },
-    processRequest: function(requestText) {
-      $('#insert-table-features-request').text(requestText);
-    },
-    processResponse: function(response) {
-      window.setTimeout(function() {
-        pollTableStatus(projectId, tableId);
-      }, 1000);
-      $('#insert-table-features-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
-      $('#insert-table-features-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
     }
+  }, function (err, response) {
+    if (err) {
+      $('#insert-table-features-response').text('Error response:\n\n' +
+          JSON.stringify(err, null, 2));
+      return;
+    }
+    window.setTimeout(function() {
+      pollTableStatus(projectId, tableId);
+    }, 1000);
+    $('#insert-table-features-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -348,22 +340,18 @@ function insertTableFeatures(projectId, tableId) {
  * Retrieve Table details.
  */
 function pollTableStatus(projectId, tableId) {
-  doRequest({
-    path: '/mapsengine/v1/tables/' + tableId,
-    method: 'GET',
-    processRequest: function(requestText) {
-      $('#poll-table-status-request').text(requestText);
-    },
-    processResponse: function(response) {
-      window.setTimeout(function() {
-        createLayer(projectId, tableId);
-      }, 1000);
-      $('#poll-table-status-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+  mapsengine.tables.get({
+    id: tableId
+  }, function (err, response) {
+    if (err) {
       $('#poll-table-status-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
+          JSON.stringify(err, null, 2));
+      return;
     }
+    window.setTimeout(function() {
+      createLayer(projectId, tableId);
+    }, 1000);
+    $('#poll-table-status-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -372,10 +360,8 @@ function pollTableStatus(projectId, tableId) {
  * process=true to kick off processing.
  */
 function createLayer(projectId, tableId) {
-  doRequest({
-    path: '/mapsengine/v1/layers',
-    method: 'POST',
-    body: {
+  mapsengine.layers.create({
+    resource: {
       datasourceType: 'table',
       name: 'Capital Cities of Australia Layer',
       projectId: projectId,
@@ -398,52 +384,38 @@ function createLayer(projectId, tableId) {
         id: tableId
       }]
     },
-    params: {
-      process: true
-    },
-    processRequest: function(requestText) {
-      $('#create-layer-request').text(requestText);
-    },
-    processResponse: function(response) {
-      window.setTimeout(function() {
-        pollLayerStatus(projectId, response.result.id);
-      }, 1000);
-      $('#create-layer-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+    process: true
+  }, function (err, response) {
+    if (err) {
       $('#create-layer-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
+          JSON.stringify(err, null, 2));
+      return;
     }
+    window.setTimeout(function() {
+      pollLayerStatus(projectId, response.id);
+    }, 1000);
+    $('#create-layer-response').text(JSON.stringify(response, null, 2));
   });
 }
 
 /**
- * Poll the created `layer`, waiting for processingStatus to move
- * from `processing` to `complete`
+ * Poll the created layer, waiting for processingStatus to move
+ * from processing to complete.
  */
 function pollLayerStatus(projectId, layerId) {
-  doRequest({
-    path: '/mapsengine/v1/layers/' + layerId,
-    method: 'GET',
-    processRequest: function(requestText) {
-      $('#poll-layer-request').text(requestText);
-    },
-    processResponse: function(response) {
-      if (response.result.processingStatus == 'complete') {
-        window.setTimeout(publishLayer, 1000, projectId, layerId);
-      } else if (response.result.processingStatus == 'processing') {
-        // Still processing, loop around until the layer processing status
-        // is either 'complete' or 'failed'
-        window.setTimeout(function() {
-          pollLayerStatus(projectId, layerId);
-        }, 1000);
-      }
-      $('#poll-layer-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+  mapsengine.layers.get({
+    id: layerId
+  }, function (err, response) {
+    if (err) {
       $('#poll-layer-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
+          JSON.stringify(err, null, 2));
+      return;
     }
+    if (response.processingStatus == 'complete' || 
+        response.processingStatus == 'processing') {
+      window.setTimeout(publishLayer, 1000, projectId, layerId);
+    } 
+    $('#poll-layer-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -451,22 +423,16 @@ function pollLayerStatus(projectId, layerId) {
  * Publish this Layer.
  */
 function publishLayer(projectId, layerId) {
-  doRequest({
-    path: '/mapsengine/v1/layers/' + layerId + '/publish',
-    method: 'POST',
-    processRequest: function(requestText) {
-      $('#publish-layer-request').text(requestText);
-    },
-    processResponse: function(response) {
-      window.setTimeout(function() {
-        createMap(projectId, layerId);
-      }, 1000);
-      $('#publish-layer-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+  mapsengine.layers.publish({id: layerId}, function (err, response) {
+    if (err) {
       $('#publish-layer-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
+          JSON.stringify(err, null, 2));
+      return;
     }
+    window.setTimeout(function() {
+      createMap(projectId, layerId);
+    }, 1000);
+    $('#publish-layer-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -474,32 +440,26 @@ function publishLayer(projectId, layerId) {
  * Create a Map.
  */
 function createMap(projectId, layerId) {
-  doRequest({
-    path: '/mapsengine/v1/maps',
-    method: 'POST',
-    body: {
-      name: 'Capital Cities of Australia Map',
-      projectId: projectId,
-      contents: [
-        {
-          type: 'layer',
-          id: layerId
-        }
-      ]
-    },
-    processRequest: function(requestText) {
-      $('#create-map-request').text(requestText);
-    },
-    processResponse: function(response) {
-      window.setTimeout(function() {
-        publishMap(projectId, response.result.id);
-      }, 1000);
-      $('#create-map-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+
+  mapsengine.maps.create({resource:{
+    name: 'Capital Cities of Australia Map',
+    projectId: projectId,
+    contents: [
+      {
+        type: 'layer',
+        id: layerId
+      }
+    ]
+  }}, function(err, response) {
+    if (err) {
       $('#create-map-response').text('Error response:\n\n' +
-          JSON.stringify(response, null, 2));
+          JSON.stringify(err, null, 2));
+      return;
     }
+    window.setTimeout(function() {
+      publishMap(projectId, response.id);
+    }, 1000);
+    $('#create-map-response').text(JSON.stringify(response, null, 2));
   });
 }
 
@@ -507,72 +467,24 @@ function createMap(projectId, layerId) {
  * Publish the Map.
  */
 function publishMap(projectId, mapId) {
-  doRequest({
-    path: '/mapsengine/v1/maps/' + mapId + '/publish',
-    method: 'POST',
-    body: {
-      id: mapId,
-      projectId: projectId
-    },
-    processRequest: function(requestText) {
-      $('#publish-map-request').text(requestText);
-    },
-    processResponse: function(response) {
-      $('#publish-map-response').text(JSON.stringify(response, null, 2));
-    },
-    processErrorResponse: function(response) {
+
+  mapsengine.maps.publish({
+    id: mapId
+  }, function (err, response) {
+    if (err) {
       // Retry on 409, map wasn't ready to publish
-      if (response.status == 409) {
+      if (err.status == 409) {
         window.setTimeout(publishMap, 1000, projectId, mapId);
         $('#publish-map-response').text('Retrying until map is published:\n\n' +
-            JSON.stringify(response, null, 2));
+            JSON.stringify(err, null, 2));
       } else {
         $('#publish-map-response').text('Error response:\n\n' +
-            JSON.stringify(response, null, 2));
+            JSON.stringify(err, null, 2));
       }
+      return;
     }
+    $('#publish-map-response').text(JSON.stringify(response, null, 2));
   });
+
 }
 
-function doRequest(args) {
-  var retryAttempt = 0;
-
-  var requestText = args.method + ' ' + args.path;
-  if (args.body) {
-    requestText += '\n\n' + JSON.stringify(args.body, undefined, 2);
-  }
-  args.processRequest(requestText);
-
-  // The following construct is an immediately executed inline function to
-  // enable retrying requests when we encounter rate limiting. It captures
-  // the request arguments to doRequest.
-  (function doRequestWithBackoff() {
-    gapi.client.request({
-      path: args.path,
-      method: args.method,
-      body: args.body,
-      params: args.params
-    }).then(function(response) {
-      args.processResponse(response);
-    }, function(failureResponse) {
-      if (failureResponse.status == 503 ||
-          (failureResponse.result.error.errors[0].reason == 'rateLimitExceeded' ||
-           failureResponse.result.error.errors[0].reason == 'userRateLimitExceeded')) {
-        if (++retryAttempt > 10) {
-          return;
-        }
-
-        // Exponential back off, with jitter, ramping up to 20 seconds
-        // between retries.
-        var backoffSeconds = Math.random() * Math.min(Math.pow(2, retryAttempt), 20);
-        window.setTimeout(doRequestWithBackoff, backoffSeconds * 1000);
-
-        return;
-      }
-
-      if (args.processErrorResponse) {
-        args.processErrorResponse(failureResponse);
-      }
-    });
-  })();
-}
