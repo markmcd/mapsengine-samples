@@ -47,6 +47,7 @@ public class UpdateData {
 
   private static final String APPLICATION_NAME = "Google/MapsEngineUpdateData-1.0";
   private static final Collection<String> SCOPES = Arrays.asList(MapsEngineScopes.MAPSENGINE);
+  private static final String NOWHERE_COUNTRY_CODE = "NWH";
 
   private MapsEngine engine;
 
@@ -96,7 +97,7 @@ public class UpdateData {
     // can run this tutorial multiple times on the same table. If it doesn't exist,
     // then the batchDelete call will still return successfully.
     System.out.println("Clearing out existing features.");
-    deleteFeature(table, "NWH");
+    deleteFeature(table, NOWHERE_COUNTRY_CODE);
     System.out.println("Done.");
 
     System.out.println("Adding a new feature.");
@@ -137,7 +138,7 @@ public class UpdateData {
     // Build the dictionary of feature properties
     Map<String, Object> properties = new HashMap<>();
     properties.put("POP_GROWTH", 1.1976742729);
-    properties.put("COUNTRY", "NWH");
+    properties.put("COUNTRY", NOWHERE_COUNTRY_CODE);
 
     // Build the geometry. Note that this is using the Maps Engine API Wrapper for simplicity
     Point point = new Point(-34.0, 153.0);
@@ -155,7 +156,7 @@ public class UpdateData {
   private void updateFeature(Table table) throws IOException {
     // Set the properties to patch
     Map<String, Object> properties = new HashMap<>();
-    properties.put("COUNTRY", "NWH"); // Required: the primary key value to update
+    properties.put("COUNTRY", NOWHERE_COUNTRY_CODE); // Required: the primary key value to update
     properties.put("POP_GROWTH", 0);
 
     // Build the feature. We're not changing geometry so we can omit it.
