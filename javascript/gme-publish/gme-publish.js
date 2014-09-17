@@ -119,15 +119,15 @@ function handleAuthClick(event) {
  * step.
  */
 function listProjects() {
-  mapsengine.projects.list(function(err, response) {
+  mapsengine.projects.list(function(err, result) {
     if (err) {
-      $('#list-projects-response').text('Error response:\n\n' +
+      $('#list-projects-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
-    if (response.projects.length > 0) {
+    if (result.projects.length > 0) {
       var select = $('<select id="project-selector">');
-      response.projects.forEach(function(project, index, projects) {
+      result.projects.forEach(function(project, index, projects) {
         select.append($('<option/>').val(project.id).text(project.name));
       });
 
@@ -141,7 +141,7 @@ function listProjects() {
       window.alert('Sorry, you appear to have no Maps Engine Projects');
     }
 
-    $('#list-projects-response').text(JSON.stringify(response, null, 2));
+    $('#list-projects-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -182,16 +182,16 @@ function createVectorTable(projectId) {
       name: tableName,
       schema: tableSchema
     }
-  }, function(err, response) {
+  }, function(err, result) {
     if (err) {
-      $('#create-table-response').text('Error response:\n\n' +
+      $('#create-table-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
     window.setTimeout(function() {
-      insertTableFeatures(projectId, response.id);
+      insertTableFeatures(projectId, result.id);
     }, 1000);
-    $('#create-table-response').text(JSON.stringify(response, null, 2));
+    $('#create-table-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -323,16 +323,16 @@ function insertTableFeatures(projectId, tableId) {
     resource: {
       features: cities
     }
-  }, function (err, response) {
+  }, function (err, result) {
     if (err) {
-      $('#insert-table-features-response').text('Error response:\n\n' +
+      $('#insert-table-features-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
     window.setTimeout(function() {
       pollTableStatus(projectId, tableId);
     }, 1000);
-    $('#insert-table-features-response').text(JSON.stringify(response, null, 2));
+    $('#insert-table-features-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -342,16 +342,16 @@ function insertTableFeatures(projectId, tableId) {
 function pollTableStatus(projectId, tableId) {
   mapsengine.tables.get({
     id: tableId
-  }, function (err, response) {
+  }, function (err, result) {
     if (err) {
-      $('#poll-table-status-response').text('Error response:\n\n' +
+      $('#poll-table-status-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
     window.setTimeout(function() {
       createLayer(projectId, tableId);
     }, 1000);
-    $('#poll-table-status-response').text(JSON.stringify(response, null, 2));
+    $('#poll-table-status-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -385,16 +385,16 @@ function createLayer(projectId, tableId) {
       }]
     },
     process: true
-  }, function (err, response) {
+  }, function (err, result) {
     if (err) {
-      $('#create-layer-response').text('Error response:\n\n' +
+      $('#create-layer-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
     window.setTimeout(function() {
-      pollLayerStatus(projectId, response.id);
+      pollLayerStatus(projectId, result.id);
     }, 1000);
-    $('#create-layer-response').text(JSON.stringify(response, null, 2));
+    $('#create-layer-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -405,17 +405,17 @@ function createLayer(projectId, tableId) {
 function pollLayerStatus(projectId, layerId) {
   mapsengine.layers.get({
     id: layerId
-  }, function (err, response) {
+  }, function (err, result) {
     if (err) {
-      $('#poll-layer-response').text('Error response:\n\n' +
+      $('#poll-layer-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
-    if (response.processingStatus == 'complete' || 
-        response.processingStatus == 'processing') {
+    if (result.processingStatus == 'complete' || 
+        result.processingStatus == 'processing') {
       window.setTimeout(publishLayer, 1000, projectId, layerId);
     } 
-    $('#poll-layer-response').text(JSON.stringify(response, null, 2));
+    $('#poll-layer-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -423,16 +423,16 @@ function pollLayerStatus(projectId, layerId) {
  * Publish this Layer.
  */
 function publishLayer(projectId, layerId) {
-  mapsengine.layers.publish({id: layerId}, function (err, response) {
+  mapsengine.layers.publish({id: layerId}, function (err, result) {
     if (err) {
-      $('#publish-layer-response').text('Error response:\n\n' +
+      $('#publish-layer-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
     window.setTimeout(function() {
       createMap(projectId, layerId);
     }, 1000);
-    $('#publish-layer-response').text(JSON.stringify(response, null, 2));
+    $('#publish-layer-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -450,16 +450,16 @@ function createMap(projectId, layerId) {
         id: layerId
       }
     ]
-  }}, function(err, response) {
+  }}, function(err, result) {
     if (err) {
-      $('#create-map-response').text('Error response:\n\n' +
+      $('#create-map-result').text('Error result:\n\n' +
           JSON.stringify(err, null, 2));
       return;
     }
     window.setTimeout(function() {
-      publishMap(projectId, response.id);
+      publishMap(projectId, result.id);
     }, 1000);
-    $('#create-map-response').text(JSON.stringify(response, null, 2));
+    $('#create-map-result').text(JSON.stringify(result, null, 2));
   });
 }
 
@@ -470,20 +470,20 @@ function publishMap(projectId, mapId) {
 
   mapsengine.maps.publish({
     id: mapId
-  }, function (err, response) {
+  }, function (err, result) {
     if (err) {
       // Retry on 409, map wasn't ready to publish
       if (err.status == 409) {
         window.setTimeout(publishMap, 1000, projectId, mapId);
-        $('#publish-map-response').text('Retrying until map is published:\n\n' +
+        $('#publish-map-result').text('Retrying until map is published:\n\n' +
             JSON.stringify(err, null, 2));
       } else {
-        $('#publish-map-response').text('Error response:\n\n' +
+        $('#publish-map-result').text('Error result:\n\n' +
             JSON.stringify(err, null, 2));
       }
       return;
     }
-    $('#publish-map-response').text(JSON.stringify(response, null, 2));
+    $('#publish-map-result').text(JSON.stringify(result, null, 2));
   });
 
 }
