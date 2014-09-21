@@ -11,6 +11,7 @@ Tutorials
 These apps are complete, runnable versions of the code used in the Maps Engine API tutorials.
 
 * Create Map [[Tutorial](https://developers.google.com/maps-engine/documentation/tutorial-create-map)] [[Java](java/src/main/java/com/google/mapsengine/tutorials/CsvUpload.java)]
+* Update Data [[Tutorial](https://developers.google.com/maps-engine/documentation/tutorial-update-data)] [[Java](java/src/main/java/com/google/mapsengine/tutorials/UpdateData.java)]
 
 
 Other Samples
